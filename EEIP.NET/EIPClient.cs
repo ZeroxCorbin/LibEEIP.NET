@@ -738,7 +738,7 @@ namespace Sres.Net.EEIP
             {
                 stream.Write(dataToWrite, 0, dataToWrite.Length);
             }
-            catch (Exception e)
+            catch
             {
                 //Handle Exception  to allow Forward close if the connection was closed by the Remote Device before
             }
@@ -748,7 +748,7 @@ namespace Sres.Net.EEIP
             {
                 Int32 bytes = stream.Read(data, 0, data.Length);
             }
-            catch (Exception e)
+            catch
             {
                 //Handle Exception  to allow Forward close if the connection was closed by the Remote Device before
             }
