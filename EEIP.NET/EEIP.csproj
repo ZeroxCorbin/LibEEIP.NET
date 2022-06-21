@@ -2,18 +2,32 @@
 	<PropertyGroup>
 		<TargetFramework>netstandard2.0</TargetFramework>
 		<OutputType>Library</OutputType>
-		<RootNamespace>Sres.Networking.Eeip.Library</RootNamespace>
-		<Version>1.6.1</Version>
+		<RootNamespace>Sres.Net.EEIP</RootNamespace>
+		<Version>2</Version>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageTags>Ethernet/IP;EIP;EEIP;CIP;communication;TCP;UDP</PackageTags>
-		<Authors>Stefan Rossmann Engineering Solutions</Authors>
+		<Authors>Stefan Rossmann Engineering Solutions, Marek Ištvánek - Kinali - Scienta Omicron</Authors>
 		<PackageProjectUrl>http://www.eeip-library.de</PackageProjectUrl>
 		<Copyright>2018-2022</Copyright>
-		<Description>Ethernet/IP client
-- supports explicit and implicit messaging and IO scanner
-- has object library with CIP definined objects
-- can also be used for LabView integration (see LabView example in source code)</Description>
+		<Description>EtherNet/IP (Ethernet Industrial Protocol = EIP) compatible client for communication with devices in .NET without special knowledge about EtherNet/IP.
+EtherNet/IP is adaptation of Common Industrial Protocol (CIP) to Ethernet networks over TCP/UDP/IP networking.
+
+Supports
+- Explicit messaging
+  - Uses TCP
+  - Unconnected Message Manager (UCMM)
+- Implicit messaging
+  - Uses UDP
+  - IO scanner of IO adapter device
+- EIP message
+  - Encapsulation
+  - Common Package format
+- CIP
+  - EPath
+  - Object Library
+
+Can also be used for LabView integration (see LabView example in source code).</Description>
 		<Title>EEIP.NET</Title>
 		<Product>EEIP.NET</Product>
 		<RepositoryUrl></RepositoryUrl>
@@ -22,6 +36,7 @@
 		<GenerateDocumentationFile>True</GenerateDocumentationFile>
 		<ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
 		<EmbedUntrackedSources>true</EmbedUntrackedSources>
+		<LangVersion>latest</LangVersion>
 	</PropertyGroup>
 	<ItemGroup>
 		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />

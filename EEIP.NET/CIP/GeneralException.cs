@@ -1,71 +1,58 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Sres.Net.EEIP.CIP.ObjectLibrary;
 
-namespace Sres.Net.EEIP
+namespace Sres.Net.EEIP.CIP
 {
-
-    /// <summary>
-    /// Table A-3.1 Volume 1 Chapter A-3
-    /// </summary>
-    public enum CIPCommonServices : byte
+    public class GeneralException :
+        Exception
     {
-        Get_Attributes_All = 0x01,
-        Set_Attributes_All_Request = 0x02,
-        Get_Attribute_List = 0x03,
-        Set_Attribute_List = 0x04,
-        Reset = 0x05,
-        Start = 0x06,
-        Stop = 0x07,
-        Create = 0x08,
-        Delete = 0x09,
-        Multiple_Service_Packet = 0x0A,
-        Apply_Attributes = 0x0D,
-        Get_Attribute_Single = 0x0E,
-        Set_Attribute_Single = 0x10,
-        Find_Next_Object_Instance = 0x11,
-        Error_Response = 0x14,
-        Restore = 0x15,
-        Save = 0x16,
-        NOP = 0x17,
-        Get_Member = 0x18,
-        Set_Member = 0x19,
-        Insert_Member = 0x1A,
-        Remove_Member = 0x1B,
-        GroupSync = 0x1C
-    }
+        protected GeneralException(string message, byte status, GeneralException innerException = null) :
+            base(message, innerException)
+            => Status = status;
 
+        public GeneralException(byte code, GeneralException innerException = null) :
+            this(GetMessage(code, GetMessage(code)), code, innerException)
+        { }
 
-    public class CIPException : Exception
-    {
-        public CIPException()
+        public static GeneralException From(MessageRouterResponse response, Func<ushort, string> getStatusMessage = null)
         {
+            if (response is null)
+                throw new ArgumentNullException(nameof(response));
+            return response.Status == Success ?
+                null :
+                response.ExtendedStatuses.Any() ?
+                    new ExtendedException(
+                        response.Status,
+                        response.ExtendedStatuses,
+                        getStatusMessage ??
+                        (response.Status == ConnectionFailure ?
+                            ConnectionManager.GetExtendedStatus :
+                            null)) :
+                    new GeneralException(response.Status);
         }
 
-        public CIPException(string message)
-            : base(message)
-        {
-        }
+        protected internal static string GetMessage<T>(T status, string message = null) => message is null ?
+            status?.ToString() :
+            $"{status}: {message}";
 
-        public CIPException(string message, Exception inner)
-            : base(message, inner)
-        {
-        }
-    }
+        /// <summary>
+        /// General status
+        /// </summary>
+        public byte Status { get; }
 
-    /// <summary>
-    /// Table B-1.1 CIP General Status Codes
-    /// </summary>
-    internal static class GeneralStatusCodes
-    {
-        static internal string GetStatusCode(byte code)
+        public const byte Success = 0x00;
+        public const byte ConnectionFailure = 0x01;
+
+        /// <summary>
+        /// Table B-1.1 CIP General Status Codes
+        /// </summary>
+        protected static string GetMessage(byte status)
         {
-            switch (code)
+            switch (status)
             {
-                case 0x00: return "Success";
-                case 0x01: return "Connection failure";
+                case Success: return "Success";
+                case ConnectionFailure: return "Connection failure";
                 case 0x02: return "Resource unavailable";
                 case 0x03: return "Invalid Parameter value";
                 case 0x04: return "Path segment error";
