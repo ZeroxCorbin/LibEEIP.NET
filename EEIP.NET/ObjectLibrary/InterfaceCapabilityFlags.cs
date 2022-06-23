@@ -1,4 +1,4 @@
-﻿namespace Sres.Net.EEIP.CIP.ObjectLibrary
+﻿namespace Sres.Net.EEIP.ObjectLibrary
 {
     /// <summary>
     /// Chapter 5-3.2.2.2 Volume 2

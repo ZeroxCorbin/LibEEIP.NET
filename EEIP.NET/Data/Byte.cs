@@ -9,9 +9,6 @@
 
         public override ushort ByteCount => 1;
 
-        protected override void DoToBytes(byte[] bytes, ref int index)
-            => bytes[index++] = Value;
-
-        public static implicit operator Byte(byte value) => new Byte(value);
+        protected override void DoToBytes(byte[] bytes, ref int index) => bytes[index++] = Value;
     }
 }

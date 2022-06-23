@@ -16,8 +16,8 @@
 
         protected sealed override void DoToBytes(byte[] bytes, ref int index)
         {
-            Type.AsByteable().ToBytes(bytes, ref index);
-            DataLength.AsByteable().ToBytes(bytes, ref index);
+            Type.ToBytes(bytes, ref index);
+            DataLength.ToBytes(bytes, ref index);
             AddData(bytes, ref index);
         }
 

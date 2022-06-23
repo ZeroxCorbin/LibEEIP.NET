@@ -12,22 +12,25 @@ namespace Sres.Net.EEIP.Encapsulation
         Byteable
     {
         public SocketAddress(uint address, ushort port)
-        {
-            Address = GetAddress(address);
-            Port = port;
-        }
+            => EndPoint = new(
+                GetAddress(address),
+                port);
 
         public SocketAddress(IReadOnlyList<byte> bytes, int index = 0)
         {
             index += 2; // skip family
-            bytes.ValidateEnoughBytes(16, nameof(SocketAddress), index);
-            Port = bytes.ToUshort(ref index, false);
+            bytes.ValidateEnoughBytes(ByteCount, nameof(SocketAddress), index);
+            var port = bytes.ToUshort(ref index, false);
             var address = bytes.ToUint(ref index, false);
-            Address = GetAddress(address);
+            EndPoint = new(
+                GetAddress(address),
+                port);
         }
 
-        public IPAddress Address { get; }
-        public ushort Port { get; init; }
+        public IPEndPoint EndPoint { get; }
+        public IPAddress Address => EndPoint.Address;
+        public ushort Port => (ushort)EndPoint.Port;
+        public ushort Family => (ushort)EndPoint.AddressFamily;
 
         public static IPAddress GetAddress(uint address) => new IPAddress(address);
 
@@ -43,11 +46,9 @@ namespace Sres.Net.EEIP.Encapsulation
         protected override void DoToBytes(byte[] bytes, ref int index)
         {
             // sin_family
-            bytes[index++] = (byte)(((ushort)Address.AddressFamily) >> 8);
-            bytes[index++] = (byte)Address.AddressFamily;
+            Family.ToBytes(bytes, ref index, false);
             // sin_port
-            bytes[index++] = (byte)(Port >> 8);
-            bytes[index++] = (byte)Port;
+            Port.ToBytes(bytes, ref index, false);
             // sin_addr
             var address = Address.GetAddressBytes();
             bytes[index++] = address[3];
@@ -55,14 +56,9 @@ namespace Sres.Net.EEIP.Encapsulation
             bytes[index++] = address[1];
             bytes[index++] = address[0];
             // sin_zero
-            bytes[index++] = byte.MinValue;
-            bytes[index++] = byte.MinValue;
-            bytes[index++] = byte.MinValue;
-            bytes[index++] = byte.MinValue;
-            bytes[index++] = byte.MinValue;
-            bytes[index++] = byte.MinValue;
-            bytes[index++] = byte.MinValue;
-            bytes[index++] = byte.MinValue;
+            Zero.ToBytes(bytes, ref index);
         }
+
+        private static readonly Bytes Zero = new(0, 0, 0, 0, 0, 0, 0, 0);
     }
 }

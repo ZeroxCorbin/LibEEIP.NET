@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Linq;
 using System.Text;
+using Sres.Net.EEIP.CIP.ObjectLibrary;
 
-namespace Sres.Net.EEIP.CIP.ObjectLibrary
+namespace Sres.Net.EEIP.ObjectLibrary
 {
     /// <summary>
     /// TCP/IP Interface Object - Class ID 0xF5
@@ -14,11 +15,11 @@ namespace Sres.Net.EEIP.CIP.ObjectLibrary
         /// Constructor
         /// </summary>
         /// <param name="client">Client</param>
-        public TcpIpInterface(EEIPClient client) :
+        public TcpIpInterface(EIPClient client) :
             base(client, ClassId)
         { }
 
-        public const int ClassId = 0xF5;
+        public const uint ClassId = 0xF5;
 
         /// <summary>
         /// gets the Status / Read "TCP/IP Interface Object" Class Code 0xF5 - Attribute ID 1
@@ -40,7 +41,7 @@ namespace Sres.Net.EEIP.CIP.ObjectLibrary
                 return status;
             }
         }
-    
+
 
         /// <summary>
         /// gets the Configuration capability / Read "TCP/IP Interface Object" Class Code 0xF5 - Attribute ID 2
@@ -50,7 +51,7 @@ namespace Sres.Net.EEIP.CIP.ObjectLibrary
             get
             {
                 var byteArray = GetInstanceAttributeSingle(2);
-                    InterfaceCapabilityFlags configurationCapability = new InterfaceCapabilityFlags();
+                InterfaceCapabilityFlags configurationCapability = new InterfaceCapabilityFlags();
                 if ((byteArray[0] & 0x01) != 0)
                     configurationCapability.BootPClient = true;
                 if ((byteArray[0] & 0x02) != 0)
@@ -74,9 +75,9 @@ namespace Sres.Net.EEIP.CIP.ObjectLibrary
             {
                 var byteArray = GetInstanceAttributeSingle(4).ToArray();
                 PhysicalLink physicalLinkObject = new PhysicalLink();
-                physicalLinkObject.PathSize = (UInt16)(byteArray[1] << 8 | byteArray[0]);
+                physicalLinkObject.PathSize = (ushort)(byteArray[1] << 8 | byteArray[0]);
                 if (byteArray.Length > 2)
-                    System.Buffer.BlockCopy(byteArray, 2 , physicalLinkObject.Path, 0, byteArray.Length - 2);
+                    Buffer.BlockCopy(byteArray, 2, physicalLinkObject.Path, 0, byteArray.Length - 2);
                 return physicalLinkObject;
             }
         }
@@ -130,7 +131,7 @@ namespace Sres.Net.EEIP.CIP.ObjectLibrary
                 if (value.DomainName != null)
                 {
                     var domainName = Encoding.ASCII.GetBytes(value.DomainName);
-                    System.Buffer.BlockCopy(domainName, 0, valueToWrite, 20, domainName.Length);
+                    Buffer.BlockCopy(domainName, 0, valueToWrite, 20, domainName.Length);
                 }
                 SetInstanceAttributeSingle(5, valueToWrite);
             }

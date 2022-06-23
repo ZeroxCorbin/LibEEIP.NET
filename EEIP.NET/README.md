@@ -7,7 +7,7 @@ Supports
 - Explicit messaging
   - Uses TCP
   - Unconnected Message Manager (UCMM)
-- Implicit messaging
+- Implicit messaging (Class 1)
   - Uses UDP
   - IO scanner of IO adapter device
 - EIP message
@@ -40,5 +40,9 @@ Supports
 - EIP encapsulation and CIP messages object wrappers and error handling
 - EPath construction
 - Custom UCMM service codes
-- Multiple implicit IO connections
+- Implicit IO connections
+  - Multiple simultaneous connections with event driven data processing
+  - Configuration data
+  - Timeout
+  - Production trigger (Cyclic, Change of State, Application) and inhibit time
 - Disposability

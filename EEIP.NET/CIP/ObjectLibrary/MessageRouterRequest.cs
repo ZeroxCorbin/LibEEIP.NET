@@ -1,4 +1,5 @@
 ﻿using System;
+using Sres.Net.EEIP.CIP.Path;
 using Sres.Net.EEIP.Data;
 
 namespace Sres.Net.EEIP.CIP.ObjectLibrary
@@ -29,9 +30,9 @@ namespace Sres.Net.EEIP.CIP.ObjectLibrary
         /// </summary>
         public IByteable Data { get; }
 
-        public override ushort ByteCount => (ushort)(1 + Path.ByteCount + Data.ByteCount);
+        public sealed override ushort ByteCount => (ushort)(1 + Path.ByteCount + Data.ByteCount);
 
-        protected override void DoToBytes(byte[] bytes, ref int index)
+        protected sealed override void DoToBytes(byte[] bytes, ref int index)
         {
             bytes[index++] = Service;
             Path.ToBytes(bytes, ref index);

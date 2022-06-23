@@ -1,25 +1,27 @@
 ﻿namespace Sres.Net.EEIP.CIP.IO
 {
     using System;
+    using System.Net;
+    using Sres.Net.EEIP.CIP.Path;
     using Sres.Net.EEIP.Data;
+    using Sres.Net.EEIP.Encapsulation;
 
     /// <summary>
     /// Implicit messaging (input/output UDP) connection base
     /// </summary>
-    public abstract record IOConnection
+    public abstract record IOConnection :
+        IDisposable
     {
         protected IOConnection(
-            ushort udpPort,
             bool ownerRedundant,
             ConnectionType type,
             ConnectionRealTimeFormat realTimeFormat,
-            uint requestedPacketRate,
+            TimeSpan? requestedPacketRate,
             ConnectionPriority priority,
             ushort? dataSize,
             ConnectionSizeType dataSizeType)
         {
-            Port = udpPort;
-            RequestedPacketRate = requestedPacketRate;
+            RequestedPacketRate = requestedPacketRate ?? DefaultRequestedPacketRate;
             OwnerRedundant = ownerRedundant;
             Type = type;
             Priority = priority;
@@ -28,22 +30,28 @@
             RealTimeFormat = realTimeFormat;
         }
 
-        /// <summary>
-        /// UDP port at connection origin
-        /// </summary>
-        public ushort Port { get; init; }
-        /// <summary>
-        /// Default UDP port: 0x08AE = 2222
-        /// </summary>
-        public const ushort DefaultPort = 0x08AE;
-
         public readonly uint Id = (uint)Random.Next();
 
         /// <summary>
-        /// Requested packet rate in μs
+        /// Connection path
         /// </summary>
-        public uint RequestedPacketRate { get; init; }
-        public const uint DefaultRequestedPacketRate = 0x7A120; // 500ms
+        public abstract EPath Path { get; }
+
+        /// <summary>
+        /// Requested packet rate with μs resolution
+        /// </summary>
+        /// <value>0 means no cyclic messages</value>
+        /// <exception cref="ArgumentOutOfRangeException">set: Value is &lt; <see cref="TimeSpan.Zero"/></exception>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="value"/>.<see cref="TimeSpans.TotalMicroseconds"/> is &gt; <see cref="uint.MaxValue"/></exception>
+        public TimeSpan RequestedPacketRate
+        {
+            get => requestedPacketRate;
+            init => requestedPacketRate = value.ValidatePositiveOrZeroUint(out _);
+        }
+        /// <summary>
+        /// Default <see cref="RequestedPacketRate"/> = 500 ms
+        /// </summary>
+        public static readonly TimeSpan DefaultRequestedPacketRate = TimeSpan.FromMilliseconds(500);
 
         /// <summary>
         /// Whether multiple connections are allowed
@@ -51,10 +59,24 @@
         public bool OwnerRedundant { get; init; }
         public const bool DefaultOwnerRedundant = true;
 
+        /// <summary>
+        /// Type
+        /// </summary>
         public ConnectionType Type { get; init; }
+        /// <summary>
+        /// Whether <see cref="Type"/> is <see cref="ConnectionType.Null"/>
+        /// </summary>
+        public bool IsNull => Type == ConnectionType.Null;
+
+        /// <summary>
+        /// Socket address from <see cref="SocketAddressItem"/>
+        /// </summary>
+        public IPEndPoint SocketAddress { get; internal set; }
 
         public ConnectionPriority Priority { get; init; }
         public const ConnectionPriority DefaultPriority = ConnectionPriority.Scheduled;
+
+        #region Data
 
         /// <summary>
         /// IO data size
@@ -65,17 +87,38 @@
         public ConnectionSizeType DataSizeType { get; init; }
         public const ConnectionSizeType DefaultDataSizeType = ConnectionSizeType.Variable;
 
-        public void ValidateDataSize(string name)
+        public void ValidateDataSize(ushort maxDataSize)
         {
+            string name = $"{GetType().Name}.{nameof(DataSize)}";
             if (DataSize is null)
-                throw new ArgumentException($"Missing {name}.{nameof(DataSize)}");
+                throw new ArgumentNullException(name);
+            if (DataSize > maxDataSize)
+                throw new ArgumentOutOfRangeException(name, DataSize, "Value must be < " + maxDataSize);
         }
 
-        public byte[] CreateData(string name)
+        /// <summary>
+        /// Class 1 real-time IO data
+        /// </summary>
+        public byte[] Data { get; private set; }
+
+        internal void CreateData(ushort maxDataSize)
         {
-            ValidateDataSize(name);
-            return new byte[DataSize.Value];
+            ValidateDataSize(maxDataSize);
+            Data = new byte[DataSize.Value];
         }
+
+        /// <summary>
+        /// Last time of received/sent <see cref="Data"/>
+        /// </summary>        
+        public DateTime? LastDataTransferTime { get; private set; }
+        /// <summary>
+        /// Time elapsed since <see cref="LastDataTransferTime"/>
+        /// </summary>
+        public TimeSpan? TimeSinceLastDataTransfer => DateTime.Now - LastDataTransferTime;
+
+        protected void SetLastDataTransferTime() => LastDataTransferTime = DateTime.Now;
+
+        #endregion
 
         public ConnectionRealTimeFormat RealTimeFormat { get; init; }
 
@@ -101,6 +144,33 @@
                 ((ushort)result).AsByteable();
         }
 
+        #region Timeout
+
+        public TimeSpan Timeout => new(RequestedPacketRate.Ticks * TimeoutMultiplier);
+
+        /// <summary>
+        /// <see cref="ConnectionTimeoutMultiplier"/> value from <see cref="SetTimeoutMultiplier"/>
+        /// </summary>
+        public ushort TimeoutMultiplier { get; private set; }
+
+        /// <summary>
+        /// Sets <see cref="TimeoutMultiplier"/> to the result of <see cref="GetTimeoutMultiplier"/>
+        /// </summary>
+        /// <param name="multiplier"></param>
+        internal void SetTimeoutMultiplier(ConnectionTimeoutMultiplier multiplier) => TimeoutMultiplier = GetTimeoutMultiplier(multiplier);
+
+        /// <summary>
+        /// Gets <paramref name="multiplier"/>`s value
+        /// </summary>
+        /// <param name="multiplier">Multiplier</param>
+        /// <returns>2 ^ (2 + <paramref name="multiplier"/>) </returns>
+        public static ushort GetTimeoutMultiplier(ConnectionTimeoutMultiplier multiplier) => (ushort)(1 << (2 + (byte)multiplier));
+
+        #endregion
+
+        public abstract void Dispose();
+
         protected static readonly Random Random = new Random();
+        private TimeSpan requestedPacketRate;
     }
 }

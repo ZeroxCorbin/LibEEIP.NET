@@ -3,23 +3,20 @@
     /// <summary>
     /// Implicit connection originator = IO Scanner = client
     /// </summary>
-    public record Originator
+    public record Originator :
+        IOConnectionEndPoint
     {
-        public Originator(OriginatorToTargetConnection connectionToTarget, ushort vendorId = 0xFF, uint serialNumber = ushort.MaxValue)
+        public Originator(
+            ushort port = DefaultPort,
+            ushort vendorId = 0xFF,
+            uint serialNumber = ushort.MaxValue) :
+            base(port)
         {
-            this.ConnectionToTarget = connectionToTarget;
             this.VendorId = vendorId;
             this.SerialNumber = serialNumber;
         }
 
         public ushort VendorId { get; init; }
         public uint SerialNumber { get; init; }
-        public OriginatorToTargetConnection ConnectionToTarget
-        {
-            get => connectionToTarget;
-            init => connectionToTarget = value ?? throw new System.ArgumentNullException(nameof(connectionToTarget));
-        }
-
-        private OriginatorToTargetConnection connectionToTarget;
     }
 }

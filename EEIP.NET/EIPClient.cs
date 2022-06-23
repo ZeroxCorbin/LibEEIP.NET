@@ -7,18 +7,25 @@ using System.Net.Sockets;
 using Sres.Net.EEIP.CIP;
 using Sres.Net.EEIP.CIP.IO;
 using Sres.Net.EEIP.CIP.ObjectLibrary;
+using Sres.Net.EEIP.CIP.Path;
 using Sres.Net.EEIP.Data;
 using Sres.Net.EEIP.Encapsulation;
+using Sres.Net.EEIP.ObjectLibrary;
 
 namespace Sres.Net.EEIP
 {
     /// <summary>
-    /// EtherNet/IP client
+    /// EtherNet/IP client (implementation version >= 2.x) according to specification:
+    /// The CIP Networks Library (https://www.odva.org/subscriptions-services/specifications/)
+    /// <list type="bullet">
+    /// <item>Volume 1 - Common Industrial Protocol - 2007</item>
+    /// <item>Volume 2 - EtherNetIP Adaptation of CIP - 2007</item>
+    /// </list>
     /// </summary>
-    public class EEIPClient :
+    public class EIPClient :
         IDisposable
     {
-        public EEIPClient()
+        public EIPClient()
         {
             identity = new Lazy<Identity>(() => new Identity(this));
             assembly = new Lazy<Assembly>(() => new Assembly(this));
@@ -141,7 +148,7 @@ namespace Sres.Net.EEIP
         public uint SessionHandle { get; private set; }
 
         /// <summary>
-        /// Sends <see cref="Command.RegisterSession"/> to a target to initiate TCP session
+        /// Sends <see cref="Command.RegisterSession"/> to a target to initiate TCP/IP session
         /// </summary>
         /// <param name="ipAddress">IP address of the target device. null means <see cref="Address"/></param> 
         /// <param name="tcpPort">TCP port of the target device. null means <see cref="Port"/>.</param> 
@@ -168,8 +175,9 @@ namespace Sres.Net.EEIP
         }
 
         /// <summary>
-        /// Sends <see cref="Command.UnRegisterSession"/> to a target to terminate TCP session
+        /// Sends <see cref="Command.UnRegisterSession"/> to a target to terminate TCP/IP session
         /// </summary> 
+        /// <remarks>Called by <see cref="Close"/></remarks>
         public void UnRegisterSession()
         {
             if (SessionHandle == 0)
@@ -241,29 +249,35 @@ namespace Sres.Net.EEIP
 
         #region Forward Open/Close
 
-        public Encapsulation.IOCall ForwardOpen(ForwardOpenRequest request)
+        /// <summary>
+        /// Establishes implicit IO connections with UDP/IP messaging
+        /// </summary>
+        /// <param name="request">Request</param>
+        /// <returns>IO context which is disposed by <see cref="ForwardClose(Encapsulation.IOContext)"/></returns>
+        /// <exception cref="ArgumentNullException"><paramref name="request"/> is null</exception>
+        public Encapsulation.IOContext ForwardOpen(ForwardOpenRequest request) => ForwardOpen(request, false);
+
+        private protected Encapsulation.IOContext ForwardOpen(ForwardOpenRequest request, bool backwardsCompatible)
         {
             if (request is null)
                 throw new ArgumentNullException(nameof(request));
-            lock (ioCalls)
+            lock (ioContexts)
             {
-                AutodetectDataSize(request);
-
-                // Add Socket Address Item O->T
-                var originatorSocketAddress = request.GetOriginatorSocketAddress(Address);
-
+                EnsureDataSize(request);
+                var originatorSocketAddress = request.GetOriginatorToTargetSocketAddress(Address);
                 var reply = Call(request, originatorSocketAddress);
 
-                var result = new Encapsulation.IOCall(Address, request, reply);
-                ioCalls.Add(result);
+                var result = new Encapsulation.IOContext(backwardsCompatible, Address, request, reply);
+                ioContexts.Add(result);
                 return result;
             }
         }
 
-        private void AutodetectDataSize(ForwardOpenRequest request)
+        private void EnsureDataSize(ForwardOpenRequest request)
         {
-            request.Originator.ConnectionToTarget.DataSize ??= GetDataSize(request.Originator.ConnectionToTarget.InputPath);
-            request.Target.ConnectionToOriginator.DataSize ??= GetDataSize(request.Target.ConnectionToOriginator.OutputPath);
+            request.OriginatorToTargetConnection.DataSize ??= GetDataSize(request.OriginatorToTargetConnection.DataPath);
+            request.TargetToOriginatorConnection.DataSize ??= GetDataSize(request.TargetToOriginatorConnection.DataPath);
+            request.ValidateDataSize();
         }
 
         /// <summary>
@@ -279,38 +293,46 @@ namespace Sres.Net.EEIP
             return result;
         }
 
+        /// <summary>
+        /// Closes all previous <see cref="Encapsulation.IOContext"/>s (with <see cref="ForwardClose(Encapsulation.IOContext)"/>) created with <see cref="ForwardOpen(ForwardOpenRequest)"/>
+        /// </summary>
+        /// <remarks>Called by <see cref="Close"/></remarks>
         public void ForwardClose()
         {
-            lock (ioCalls)
+            lock (ioContexts)
             {
-                foreach (var ioCall in ioCalls)
+                foreach (var ioCall in ioContexts)
                     ForwardClose(ioCall);
-                ioCalls.Clear();
+                ioContexts.Clear();
             }
         }
-
-        public void ForwardClose(Encapsulation.IOCall call)
+        /// <summary>
+        /// Closes <paramref name="context"/> created with <see cref="ForwardOpen(ForwardOpenRequest)"/> and disposes it
+        /// </summary>
+        /// <param name="context">Context to close</param>
+        /// <exception cref="ArgumentNullException"><paramref name="context"/> is null</exception>
+        public void ForwardClose(Encapsulation.IOContext context)
         {
-            if (call is null)
-                throw new ArgumentNullException(nameof(call));
-            lock (ioCalls)
+            if (context is null)
+                throw new ArgumentNullException(nameof(context));
+            lock (ioContexts)
             {
-                call.StopSendingInput();
+                context.StopSendDataToTarget();
                 try
                 {
-                    var request = call.CreateForwardCloseRequest();
+                    var request = context.CreateForwardCloseRequest();
                     var reply = Call(request);
                 }
                 catch
                 {
                     // Handle Exception to allow Forward close if the connection was closed by the Remote Device before
                 }
-                call.Dispose();
-                ioCalls.Remove(call);
+                context.Dispose();
+                ioContexts.Remove(context);
             }
         }
 
-        private readonly List<Encapsulation.IOCall> ioCalls = new();
+        private readonly List<Encapsulation.IOContext> ioContexts = new();
 
         #endregion
 
@@ -346,7 +368,16 @@ namespace Sres.Net.EEIP
 
         #endregion
 
-        public void Dispose()
+        /// <summary>
+        /// Calls <see cref="Close"/>
+        /// </summary>
+        public void Dispose() => Close();
+
+        /// <summary>
+        /// Closes IO contexts (<see cref="ForwardClose()"/>) and session (<see cref="UnRegisterSession"/>)
+        /// </summary>
+        /// <remarks>Called by <see cref="Dispose"/></remarks>
+        public void Close()
         {
             ForwardClose();
             UnRegisterSession();

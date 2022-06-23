@@ -10,11 +10,11 @@
         /// Constructor
         /// </summary>
         /// <param name="client">Client</param>
-        public MessageRouter(EEIPClient client) :
+        public MessageRouter(EIPClient client) :
             base(client, ClassId)
         { }
 
-        public const int ClassId = 2;
+        public const uint ClassId = 2;
 
         /// <summary>
         /// gets the Object List / Read "Message Router Object" Class Code 0x02 - Attribute ID 1

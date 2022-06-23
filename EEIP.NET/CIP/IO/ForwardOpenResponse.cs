@@ -1,5 +1,6 @@
 ﻿namespace Sres.Net.EEIP.CIP.IO
 {
+    using System;
     using System.Collections.Generic;
     using Sres.Net.EEIP.Data;
 
@@ -17,8 +18,8 @@
             ConnectionSerialNumber = bytes.ToUshort(ref index);
             OriginatorVendorId = bytes.ToUshort(ref index);
             OriginatorSerialNumber = bytes.ToUint(ref index);
-            OriginatorToTargetActualPacketRate = bytes.ToUint(ref index);
-            TargetToOriginatorActualPacketRate = bytes.ToUint(ref index);
+            OriginatorToTargetActualPacketRate = TimeSpans.FromMicroseconds(bytes.ToUint(ref index));
+            TargetToOriginatorActualPacketRate = TimeSpans.FromMicroseconds(bytes.ToUint(ref index));
             var applicationReplySize = bytes[index++] * 2;
             index++; // Reserved
             ApplicationReply = bytes.Segment(ref index);
@@ -30,13 +31,13 @@
         public ushort OriginatorVendorId { get; init; }
         public uint OriginatorSerialNumber { get; init; }
         /// <summary>
-        /// Originator to target actual packet rate in μs
+        /// Originator to target actual packet rate with μs resolution
         /// </summary>
-        public uint OriginatorToTargetActualPacketRate { get; init; }
+        public TimeSpan OriginatorToTargetActualPacketRate { get; init; }
         /// <summary>
-        /// Target to originator actual packet rate in μs
+        /// Target to originator actual packet rate with μs resolution
         /// </summary>
-        public uint TargetToOriginatorActualPacketRate { get; init; }
+        public TimeSpan TargetToOriginatorActualPacketRate { get; init; }
         public IReadOnlyList<byte> ApplicationReply { get; }
     }
 }

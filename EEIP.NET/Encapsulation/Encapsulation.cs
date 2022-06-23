@@ -26,6 +26,7 @@
             Options = bytes.ToUint(ref index);
             var data = bytes.Segment(ref index, dataLength);
             Data = new Bytes(data);
+            senderContext = new Bytes(SenderContext);
         }
 
         public const byte HeaderLength = 24;
@@ -33,27 +34,22 @@
         public uint SessionHandle { get; internal set; }
         public EncapsulationStatus Status { get; init; }
         public byte[] SenderContext { get; } = new byte[8];
+        private readonly Bytes senderContext;
         public uint Options { get; } = 0;
         public IByteable Data { get; }
+
         public ushort DataLength => Data.ByteCount;
 
         public sealed override ushort ByteCount => (ushort)(HeaderLength + Data.ByteCount);
 
         protected sealed override void DoToBytes(byte[] bytes, ref int index)
         {
-            ((ushort)Command).AsByteable().ToBytes(bytes, ref index);
-            DataLength.AsByteable().ToBytes(bytes, ref index);
-            SessionHandle.AsByteable().ToBytes(bytes, ref index);
-            ((uint)Status).AsByteable().ToBytes(bytes, ref index);
-            bytes[index++] = SenderContext[0];
-            bytes[index++] = SenderContext[1];
-            bytes[index++] = SenderContext[2];
-            bytes[index++] = SenderContext[3];
-            bytes[index++] = SenderContext[4];
-            bytes[index++] = SenderContext[5];
-            bytes[index++] = SenderContext[6];
-            bytes[index++] = SenderContext[7];
-            Options.AsByteable().ToBytes(bytes, ref index);
+            ((ushort)Command).ToBytes(bytes, ref index);
+            DataLength.ToBytes(bytes, ref index);
+            SessionHandle.ToBytes(bytes, ref index);
+            ((uint)Status).ToBytes(bytes, ref index);
+            senderContext.ToBytes(bytes, ref index);
+            Options.ToBytes(bytes, ref index);
             Data.ToBytes(bytes, ref index);
         }
     }

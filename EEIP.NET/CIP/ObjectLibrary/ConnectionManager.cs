@@ -6,11 +6,11 @@
     public partial class ConnectionManager :
         ObjectBase
     {
-        public ConnectionManager(EEIPClient client) :
+        public ConnectionManager(EIPClient client) :
             base(client, ClassId)
         { }
 
-        public const int ClassId = 6;
+        public const uint ClassId = 6;
 
         /// <summary>
         /// Returns the Explanation of a given statuscode (Table 3-5-29) Page 3-75 Vol 1

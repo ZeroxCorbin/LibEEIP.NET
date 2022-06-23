@@ -62,7 +62,7 @@ namespace Sres.Net.EEIP.Encapsulation
 
         protected override void DoToBytes(byte[] bytes, ref int index)
         {
-            ItemCount.AsByteable().ToBytes(bytes, ref index);
+            ItemCount.ToBytes(bytes, ref index);
             Items.ToBytes(bytes, ref index);
         }
     }

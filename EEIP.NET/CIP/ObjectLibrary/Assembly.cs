@@ -1,6 +1,7 @@
 ﻿namespace Sres.Net.EEIP.CIP.ObjectLibrary
 {
     using System.Collections.Generic;
+    using Sres.Net.EEIP.CIP.Path;
 
     /// <summary>
     /// Assembly object
@@ -12,12 +13,14 @@
         /// Constructor
         /// </summary>
         /// <param name="client">Client</param>
-        public Assembly(EEIPClient client) :
+        public Assembly(EIPClient client) :
             base(client, ClassId)
         { }
 
-        public const int ClassId = 4;
-        public const int DataAttributeId = 3;
+        public const uint ClassId = 4;
+        public const uint DataAttributeId = 3;
+
+        public static EPath DataPath(uint instanceId) => EPath.ToObject(ClassId, instanceId, DataAttributeId);
 
         /// <summary>
         /// Reads assembly instance data

@@ -17,11 +17,11 @@ namespace Sres.Net.EEIP.CIP.ObjectLibrary
         /// Constructor
         /// </summary>
         /// <param name="client">Client</param>
-        public Identity(EEIPClient client) :
+        public Identity(EIPClient client) :
             base(client, ClassId)
         { }
 
-        public const int ClassId = 1;
+        public const uint ClassId = 1;
 
         /// <summary>
         /// gets the Vendor ID / Read "Identity Object" Class Code 0x01 - Attribute ID 1
