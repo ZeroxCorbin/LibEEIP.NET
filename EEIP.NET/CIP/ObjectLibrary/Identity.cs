@@ -10,7 +10,7 @@ namespace Sres.Net.EEIP.CIP.ObjectLibrary
     /// This object provides identification of and general information about the device. The Identity Object shall be present in all CIP products.
     /// If autonomous components of a device exist, use multiple instances of the Identity Object.
     /// </remarks>
-    public partial class Identity :
+    public class Identity :
         ObjectBase
     {
         /// <summary>
@@ -71,13 +71,9 @@ namespace Sres.Net.EEIP.CIP.ObjectLibrary
         {
             get
             {
-                var byteArray = GetInstanceAttributeSingle(4);
-                Revision returnValue = new()
-                {
-                    Major = byteArray[0],
-                    Minor = byteArray[1]
-                };
-                return returnValue;
+                var bytes = GetInstanceAttributeSingle(4);
+                int index = 0;
+                return new(bytes, ref index);
             }
         }
 
@@ -123,12 +119,12 @@ namespace Sres.Net.EEIP.CIP.ObjectLibrary
         /// <summary>
         /// gets the State / Read "Identity Object" Class Code 0x01 - Attribute ID 8
         /// </summary>
-        public States State
+        public IdentityState State
         {
             get
             {
                 var byteArray = GetInstanceAttributeSingle(8);
-                States returnValue = (States)byteArray[0];
+                IdentityState returnValue = (IdentityState)byteArray[0];
                 return returnValue;
             }
         }
@@ -179,47 +175,15 @@ namespace Sres.Net.EEIP.CIP.ObjectLibrary
         }
 
         /// <summary>
-        /// gets all class attributes
-        /// </summary>
-        public ClassAttributes Class
-        {
-            get
-            {
-                var byteArray = GetClassAttributeAll();
-                ClassAttributes returnValue;
-                returnValue.Revision = (ushort)(byteArray[1] << 8 | byteArray[0]);
-                returnValue.MaxInstance = (ushort)(byteArray[3] << 8 | byteArray[2]);
-                returnValue.MaxIDNumberOfClassAttributes = (ushort)(byteArray[5] << 8 | byteArray[4]);
-                returnValue.MaxIDNumberOfInstanceAttributes = (ushort)(byteArray[7] << 8 | byteArray[6]);
-                return returnValue;
-            }
-        }
-
-        /// <summary>
         /// gets all instance attributes
         /// </summary>
         public IdentityInstance Instance
         {
             get
             {
-                var byteArray = GetInstanceAttributeAll().ToArray();
-                byte productNameLength = byteArray[14];
-                var productName = new byte[productNameLength];
-                System.Buffer.BlockCopy(byteArray, 15, productName, 0, productName.Length);
-                return new()
-                {
-                    VendorId = (ushort)(byteArray[1] << 8 | byteArray[0]),
-                    DeviceType = (ushort)(byteArray[3] << 8 | byteArray[2]),
-                    ProductCode = (ushort)(byteArray[5] << 8 | byteArray[4]),
-                    Revision = new()
-                    {
-                        Major = byteArray[6],
-                        Minor = byteArray[7]
-                    },
-                    Status = (ushort)(byteArray[9] << 8 | byteArray[8]),
-                    SerialNumber = ((uint)byteArray[13] << 24 | (uint)byteArray[12] << 16 | (uint)byteArray[11] << 8 | (uint)byteArray[10]),
-                    ProductName = Encoding.UTF8.GetString(productName)
-                };
+                var bytes = GetInstanceAttributeAll().ToArray();
+                int index = 0;
+                return new(bytes, ref index);
             }
         }
     }

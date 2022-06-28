@@ -39,7 +39,8 @@ namespace Sres.Net.EEIP.Encapsulation
             this(NullAddressItem.Instance, data, items)
         { }
 
-        public CommonPacket(IReadOnlyList<byte> bytes, int index = 0)
+        public CommonPacket(IReadOnlyList<byte> bytes, ref int index) :
+            base(bytes, ref index)
         {
             var itemCount = bytes.ToUshort(ref index);
             var items = new Item[itemCount];
@@ -50,15 +51,24 @@ namespace Sres.Net.EEIP.Encapsulation
 
         public IReadOnlyList<Item> Items { get; }
         public ushort ItemCount => (ushort)Items.Count;
+
         public AddressItem Address => (AddressItem)Items.First();
         public DataItem Data => (DataItem)Items.Skip(1).First();
         public IEnumerable<Item> OptionalItems => Items.Skip(2);
 
+        public IdentityItem IdentityItem => OptionalItems.
+            OfType<IdentityItem>().
+            SingleOrDefault();
+
         public SocketAddressItem GetSocketAddress(SocketAddressItemType type) => OptionalItems.
             OfType<SocketAddressItem>().
-            FirstOrDefault(i => i.Type == (ushort)type);
+            SingleOrDefault(i => i.Type == (ushort)type);
 
-        public override ushort ByteCount => (ushort)(2 + Items.ByteCount());
+        public override ushort ByteCount => (ushort)(
+            2 + 
+            Items?.ByteCount() ??
+            Item.MinByteCount * 2 // Address + Data
+            );
 
         protected override void DoToBytes(byte[] bytes, ref int index)
         {

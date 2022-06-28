@@ -14,10 +14,27 @@
             this.Path = EPath.ToObject(classId, instanceId);
         }
 
+        protected readonly EIPClient Client;
+
+        /// <summary>
+        /// Object path
+        /// </summary>
+        public readonly EPath Path;
+
         public const uint DefaultInstanceId = 1;
 
-        protected readonly EIPClient Client;
-        public readonly EPath Path;
+        /// <summary>
+        /// Object class
+        /// </summary>
+        public ObjectClass Class
+        {
+            get
+            {
+                var bytes = GetClassAttributeAll();
+                int index = 0;
+                return new(bytes, ref index);
+            }
+        }
 
         protected IReadOnlyList<byte> GetClassAttributeAll() => Client.GetAttributeAll(Path.WithClassIdOnly());
 

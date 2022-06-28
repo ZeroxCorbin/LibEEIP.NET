@@ -16,7 +16,7 @@ namespace Sres.Net.EEIP.Encapsulation
                 GetAddress(address),
                 port);
 
-        public SocketAddress(IReadOnlyList<byte> bytes, int index = 0)
+        public SocketAddress(IReadOnlyList<byte> bytes, ref int index)
         {
             index += 2; // skip family
             bytes.ValidateEnoughBytes(ByteCount, nameof(SocketAddress), index);
@@ -41,7 +41,8 @@ namespace Sres.Net.EEIP.Encapsulation
             return BitConverter.ToUInt32(address.GetAddressBytes(), 0);
         }
 
-        public override ushort ByteCount => 16;
+        public const int ByteCountStatic = 16;
+        public override ushort ByteCount => ByteCountStatic;
 
         protected override void DoToBytes(byte[] bytes, ref int index)
         {

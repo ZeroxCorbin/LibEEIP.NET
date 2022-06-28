@@ -78,8 +78,7 @@ namespace Sres.Net.EEIP
 
                     string multicastAddress = (address.GetAddressBytes()[0] | (~(mask.GetAddressBytes()[0])) & 0xFF).ToString() + "." + (address.GetAddressBytes()[1] | (~(mask.GetAddressBytes()[1])) & 0xFF).ToString() + "." + (address.GetAddressBytes()[2] | (~(mask.GetAddressBytes()[2])) & 0xFF).ToString() + "." + (address.GetAddressBytes()[3] | (~(mask.GetAddressBytes()[3])) & 0xFF).ToString();
 
-                    var sendData = new byte[24];
-                    sendData[0] = 0x63;               //Command for "ListIdentity"
+                    var sendData = new Encapsulation.Encapsulation(Command.ListIdentity).ToBytes();
                     var udpClient = new UdpClient();
                     var endPoint = new IPEndPoint(IPAddress.Parse(multicastAddress), 44818);
                     udpClient.Send(sendData, sendData.Length, endPoint);
@@ -90,7 +89,7 @@ namespace Sres.Net.EEIP
                         Client = udpClient
                     };
 
-                    var asyncResult = udpClient.BeginReceive(new AsyncCallback(ReceiveIdentity), state);
+                    udpClient.BeginReceive(new AsyncCallback(ReceiveIdentity), state);
 
                     System.Threading.Thread.Sleep(1000);
                 }
@@ -100,20 +99,20 @@ namespace Sres.Net.EEIP
 
         private void ReceiveIdentity(IAsyncResult ar)
         {
-            lock (this)
+            lock (identityList)
             {
                 var state = (UdpState)ar.AsyncState;
                 var endPoint = state.EndPoint;
-                byte[] receiveBytes = state.Client.EndReceive(ar, ref endPoint);
+                byte[] bytes = state.Client.EndReceive(ar, ref endPoint);
                 // EndReceive worked and we have received data and remote endpoint
-                if (receiveBytes.Length > 0)
+                if (bytes.Length > Encapsulation.Encapsulation.MinByteCount)
                 {
-                    var command = (Command)Convert.ToUInt16(
-                        receiveBytes[0]
-                        | (receiveBytes[1] << 8));
-                    if (command == Command.ListIdentity)
+                    var response = new Encapsulation.Encapsulation(bytes);
+                    if (response.Command == Command.ListIdentity)
                     {
-                        identityList.Add(IdentityItem.From(24, receiveBytes));
+                        var identity = response.GetCommonPacket().IdentityItem;
+                        if (identity != null)
+                            identityList.Add(identity);
                     }
                 }
                 var asyncResult = state.Client.BeginReceive(new AsyncCallback(ReceiveIdentity), state);
@@ -205,9 +204,10 @@ namespace Sres.Net.EEIP
             byte[] requestBytes = request.ToBytes();
             tcpStream.Write(requestBytes, 0, requestBytes.Length);
 
-            byte[] replyBuffer = new byte[564];
+            var replyBuffer = new byte[564];
             int replyLength = tcpStream.Read(replyBuffer, 0, replyBuffer.Length);
-            var reply = new Encapsulation.Encapsulation(replyBuffer);
+            var replyBytes = replyBuffer.Segment(count: replyLength);
+            var reply = new Encapsulation.Encapsulation(replyBytes);
             if (reply.Status != EncapsulationStatus.Success)
                 throw new StatusException(reply.Status);
             return reply;

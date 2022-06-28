@@ -6,18 +6,17 @@
     /// <summary>
     /// Message router response. CIP specification 2-4.2.
     /// </summary>
-    public record MessageRouterResponse
+    public record MessageRouterResponse :
+        ByteCountBase
     {
-        public MessageRouterResponse(IReadOnlyList<byte> bytes)
+        public MessageRouterResponse(IReadOnlyList<byte> bytes, int index = 0) :
+            base(bytes, ref index)
         {
             bytes.ValidateEnoughBytes(4, nameof(MessageRouterResponse) + " header");
-            int index = 0;
             Service = bytes[index++];
             index++; // Reserved
             Status = bytes[index++];
-            var additionalStatusSize = bytes[index++];
-            if (additionalStatusSize > 0)
-                ExtendedStatuses = new ByteToUshortList(bytes.Segment(ref index, additionalStatusSize));
+            ExtendedStatuses = bytes.ToUshortListWithByteCount(ref index);
             Data = bytes.Segment(ref index);
         }
 
@@ -37,5 +36,10 @@
         /// Data
         /// </summary>
         public IReadOnlyList<byte> Data { get; }
+
+        public override ushort ByteCount => (ushort)(
+            4 +
+            ExtendedStatuses?.Count * 2 ?? 0 +
+            Data?.Count ?? 0);
     }
 }

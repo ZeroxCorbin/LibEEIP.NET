@@ -3,7 +3,7 @@
     /// <summary>
     /// Message Router Object - Class ID 2
     /// </summary>
-    public partial class MessageRouter :
+    public class MessageRouter :
         ObjectBase
     {
         /// <summary>

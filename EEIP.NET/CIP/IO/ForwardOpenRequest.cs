@@ -9,7 +9,8 @@ namespace Sres.Net.EEIP.CIP.IO
     using Sres.Net.EEIP.Encapsulation;
 
     /// <summary>
-    /// Forward open request for implicit communication. Table 3-5.16 (Vol. 1).
+    /// Forward open request for implicit communication.
+    /// CIP Table 3-5.16.
     /// </summary>
     public record ForwardOpenRequest :
         ConnectionRequest
@@ -26,9 +27,9 @@ namespace Sres.Net.EEIP.CIP.IO
             TargetToOriginatorConnection targetToOriginatorConnection,
             Originator originator = null,
             Target target = null,
-            ProductionTrigger productionTrigger = default,
+            ProductionTrigger productionTrigger = ProductionTrigger.Cyclic,
             Timeout timeout = null,
-            ConnectionTimeoutMultiplier connectionTimeoutMultiplier = IO.ConnectionTimeoutMultiplier.Value32) :
+            ConnectionTimeoutMultiplier connectionTimeoutMultiplier = ConnectionTimeoutMultiplier.Value32) :
             this(
                 large,
                 originator ?? new(),

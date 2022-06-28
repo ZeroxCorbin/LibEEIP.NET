@@ -1,7 +1,7 @@
 ﻿namespace Sres.Net.EEIP.Encapsulation
 {
     /// <summary>
-    /// Socket Address (see section 2-6.3.2)
+    /// 2-6.3.3 Sockaddr Info Item
     /// </summary>
     public partial record SocketAddressItem :
         Item

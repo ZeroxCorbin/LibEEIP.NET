@@ -2,6 +2,9 @@
 {
     using Sres.Net.EEIP.Data;
 
+    /// <summary>
+    /// 2-6.3 Data Item
+    /// </summary>
     public record DataItem :
         Item
     {
@@ -11,7 +14,7 @@
 
         public IByteable Data { get; }
 
-        public override ushort DataLength => Data.ByteCount;
+        public override ushort DataLength => Data?.ByteCount ?? 0;
 
         protected override void AddData(byte[] bytes, ref int index)
             => Data.ToBytes(bytes, ref index);

@@ -20,8 +20,7 @@
         {
             if (reply is null)
                 throw new ArgumentNullException(nameof(reply));
-            var data = reply.Data.ToBytesReadOnly();
-            CommonPacket = new(data, Prefix.ByteCount);
+            CommonPacket = GetCommonPacket(Prefix.ByteCount);
         }
 
         public CommonPacket CommonPacket { get; }

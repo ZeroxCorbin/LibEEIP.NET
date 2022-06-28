@@ -7,7 +7,8 @@ namespace Sres.Net.EEIP.CIP.IO
     using Sres.Net.EEIP.Data;
 
     /// <summary>
-    /// Forward close request for implicit communication. Table 3-5.19 (Vol. 1).
+    /// Forward close request for implicit communication.
+    /// CIP Table 3-5.19.
     /// </summary>
     public record ForwardCloseRequest :
         ConnectionRequest

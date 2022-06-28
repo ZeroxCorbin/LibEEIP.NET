@@ -12,9 +12,9 @@ namespace Sres.Net.EEIP.CIP.ObjectLibrary
     {
         public MessageRouterRequest(byte service, EPath path, IByteable data = null)
         {
-            this.Service = service;
-            this.Path = path ?? throw new ArgumentNullException(nameof(path));
-            this.Data = data ?? Bytes.Empty;
+            Service = service;
+            Path = path ?? throw new ArgumentNullException(nameof(path));
+            Data = data ?? Bytes.Empty;
         }
 
         /// <summary>

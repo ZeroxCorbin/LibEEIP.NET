@@ -5,14 +5,15 @@
     using Sres.Net.EEIP.Data;
 
     /// <summary>
-    /// Forward open response for implicit communication. Table 3-5.16 (Vol. 1).
+    /// Forward open response for implicit communication.
+    /// CIP Table 3-5.17.
     /// </summary>
-    public record ForwardOpenResponse
+    public record ForwardOpenResponse :
+        ByteCountBase
     {
-        public ForwardOpenResponse(IReadOnlyList<byte> bytes)
+        public ForwardOpenResponse(IReadOnlyList<byte> bytes, int index = 0) :
+            base(bytes, ref index)
         {
-            bytes.ValidateEnoughBytes(26, nameof(ForwardOpenResponse) + " header");
-            int index = 0;
             OriginatorToTargetConnectionId = bytes.ToUint(ref index);
             TargetToOriginatorConnectionId = bytes.ToUint(ref index);
             ConnectionSerialNumber = bytes.ToUshort(ref index);
@@ -22,7 +23,7 @@
             TargetToOriginatorActualPacketRate = TimeSpans.FromMicroseconds(bytes.ToUint(ref index));
             var applicationReplySize = bytes[index++] * 2;
             index++; // Reserved
-            ApplicationReply = bytes.Segment(ref index);
+            ApplicationReply = bytes.Segment(ref index, applicationReplySize);
         }
 
         public uint OriginatorToTargetConnectionId { get; init; }
@@ -39,5 +40,7 @@
         /// </summary>
         public TimeSpan TargetToOriginatorActualPacketRate { get; init; }
         public IReadOnlyList<byte> ApplicationReply { get; }
+
+        public override ushort ByteCount => (ushort)(26 + ApplicationReply?.Count ?? 0);
     }
 }

@@ -3,7 +3,7 @@
     /// <summary>
     /// Connection Manager Object - Class ID 6
     /// </summary>
-    public partial class ConnectionManager :
+    public class ConnectionManager :
         ObjectBase
     {
         public ConnectionManager(EIPClient client) :
