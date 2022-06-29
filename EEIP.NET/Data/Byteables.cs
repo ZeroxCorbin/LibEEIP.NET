@@ -10,7 +10,7 @@
     /// </summary>
     public static class Byteables
     {
-        #region ToBytes
+        #region IByteable
 
         /// <summary>
         /// Converts <paramref name="item"/> to bytes
@@ -80,135 +80,80 @@
             foreach (var item in items)
                 item.ToBytes(bytes, ref index);
         }
+        
+        public static Byte AsByteable(this byte value) => new Byte(value);
+        public static Ushort AsByteable(this ushort value) => new Ushort(value);
+        public static Uint AsByteable(this uint value) => new Uint(value);
 
-        public static void ToBytes(this byte[] source, byte[] target, ref int targetIndex, int sourceIndex = 0, int? count = null)
-        {
-            Validate(source, nameof(source), sourceIndex, nameof(sourceIndex), ref count);
-            if (count == 0)
-                return;
-            target.ValidateEnoughBytes(count.Value, nameof(source), targetIndex);
-            foreach (var @byte in source)
-                target[targetIndex++] = @byte;
-        }
+        #endregion
 
-        public static void ToBytes<T>(this T value, byte[] bytes, ref int index, int count, Func<T, byte[]> convert, bool littleEndian = true, string name = null)
+        #region ToBytes
+
+        public static byte[] ToBytes<T>(this T value, Func<T, byte[]> convert, bool littleEndian = true)
             where T : struct
         {
-            bytes.ValidateEnoughBytes(count, name ?? nameof(T), index);
             if (convert is null)
                 throw new ArgumentNullException(nameof(convert));
-            var array = convert(value);
-            if (BitConverter.IsLittleEndian == littleEndian)
-            {
-                for (int i = 0; i < count; i++)
-                    bytes[index + i] = array[i];
-            }
-            else
-            {
-                for (int i = 0; i < count; i++)
-                    bytes[index + 1] = array[count - i - 1];
-            }
-            index += count;
+            var bytes = convert(value);
+            if (BitConverter.IsLittleEndian != littleEndian)
+                Array.Reverse(bytes);
+            return bytes;
         }
+
+        public static byte[] ToBytes(this int value, bool littleEndian = true) => value.ToBytes(BitConverter.GetBytes, littleEndian);
+        public static byte[] ToBytes(this uint value, bool littleEndian = true) => value.ToBytes(BitConverter.GetBytes, littleEndian);
+        public static byte[] ToBytes(this short value, bool littleEndian = true) => value.ToBytes(BitConverter.GetBytes, littleEndian);
+        public static byte[] ToBytes(this ushort value, bool littleEndian = true) => value.ToBytes(BitConverter.GetBytes, littleEndian);
+        public static byte[] ToBytes(this byte value) => new[] { value };
+        public static byte[] ToBytes(this sbyte value) => new[] { (byte)value };
+
+        public static void ToBytes<T>(this T value, byte[] bytes, ref int index, Func<T, byte[]> convert, bool littleEndian = true, string name = null)
+            where T : struct
+            => value.
+                ToBytes(convert, littleEndian).
+                ToBytes(bytes, ref index, name: name ?? typeof(T).Name);
 
         public static void ToBytes(this int value, byte[] bytes, ref int index, bool littleEndian = true, string name = null)
-            => value.ToBytes(bytes, ref index, 4, BitConverter.GetBytes, littleEndian, name);
+            => value.ToBytes(bytes, ref index, BitConverter.GetBytes, littleEndian, name);
 
-        public static byte[] ToBytes(this int value, bool littleEndian = true, string name = null)
-        {
-            var bytes = new byte[4];
-            int index = 0;
-            value.ToBytes(bytes, ref index, littleEndian, name);
-            return bytes;
-        }
+        public static void ToBytes(this uint value, byte[] bytes, ref int index, bool littleEndian = true, string name = null)
+            => value.ToBytes(bytes, ref index, BitConverter.GetBytes, littleEndian, name);
 
         public static void ToBytes(this short value, byte[] bytes, ref int index, bool littleEndian = true, string name = null)
-            => value.ToBytes(bytes, ref index, 2, BitConverter.GetBytes, littleEndian, name);
+           => value.ToBytes(bytes, ref index, BitConverter.GetBytes, littleEndian, name);
 
-        public static byte[] ToBytes(this short value, bool littleEndian = true, string name = null)
-        {
-            var bytes = new byte[2];
-            int index = 0;
-            value.ToBytes(bytes, ref index, littleEndian, name);
-            return bytes;
-        }
+        public static void ToBytes(this ushort value, byte[] bytes, ref int index, bool littleEndian = true, string name = null)
+           => value.ToBytes(bytes, ref index, BitConverter.GetBytes, littleEndian, name);
 
-        /// <summary>
-        /// Writes <paramref name="value"/> to <paramref name="bytes"/>[<paramref name="index"/>]
-        /// </summary>
-        /// <param name="value">Value</param>
-        /// <param name="bytes">Bytes</param>
-        /// <param name="index">Index incremented by 1 after writing</param>
         public static void ToBytes(this byte value, byte[] bytes, ref int index, string name = null)
         {
             bytes.ValidateEnoughBytes(1, name ?? nameof(Byte), index);
             bytes[index++] = value;
         }
 
-        public static void ToBytes(this sbyte value, byte[] bytes, ref int index, string name = null)
-        {
-            bytes.ValidateEnoughBytes(1, name ?? nameof(SByte), index);
-            bytes[index++] = (byte)value;
-        }
+        public static void ToBytes(this sbyte value, byte[] bytes, ref int index, string name = null) => ((byte)value).ToBytes(bytes, ref index, name ?? nameof(SByte));
 
-        /// <summary>
-        /// Writes <paramref name="value"/> to <paramref name="bytes"/> starting at <paramref name="index"/>
-        /// </summary>
-        /// <param name="value">Value</param>
-        /// <param name="bytes">Bytes</param>
-        /// <param name="index">Index incremented by 2 after writing</param>
-        /// <param name="littleEndian">Whether <paramref name="value"/>`s bytes should be written from least to most significant otherwise backwards</param>
-        public static void ToBytes(this ushort value, byte[] bytes, ref int index, bool littleEndian = true, string name = null)
+        public static void ToBytes(this string value, byte[] bytes, ref int index, string name = null)
         {
-            bytes.ValidateEnoughBytes(2, name ?? nameof(UInt16), index);
-            var bytes2 = ((byte)value, (byte)(value >> 8));
-            if (!littleEndian)
-                bytes2 = (bytes2.Item2, bytes2.Item1);
-            bytes[index++] = bytes2.Item1;
-            bytes[index++] = bytes2.Item2;
-        }
-
-        /// <summary>
-        /// Writes <paramref name="value"/> to <paramref name="bytes"/> starting at <paramref name="index"/>
-        /// </summary>
-        /// <param name="value">Value</param>
-        /// <param name="bytes">Bytes</param>
-        /// <param name="index">Index incremented by 4 after writing</param>
-        /// <param name="littleEndian">Whether <paramref name="value"/>`s bytes should be written from least to most significant otherwise backwards</param>
-        public static void ToBytes(this uint value, byte[] bytes, ref int index, bool littleEndian = true, string name = null)
-        {
-            bytes.ValidateEnoughBytes(4, name ?? nameof(UInt32), index);
-            var bytes4 = ((byte)value, (byte)(value >> 8), (byte)(value >> 16), (byte)(value >> 24));
-            if (!littleEndian)
-                bytes4 = (bytes4.Item4, bytes4.Item3, bytes4.Item2, bytes4.Item1);
-            bytes[index++] = bytes4.Item1;
-            bytes[index++] = bytes4.Item2;
-            bytes[index++] = bytes4.Item3;
-            bytes[index++] = bytes4.Item4;
-        }
-
-        public static byte[] ToBytes(this uint value, bool littleEndian = true, string name = null)
-        {
-            var bytes = new byte[4];
-            int index = 0;
-            value.ToBytes(bytes, ref index, littleEndian, name);
-            return bytes;
-        }
-
-        public static void ToBytes(this string value, byte[] bytes, ref int index)
-        {
+            name ??= nameof(String);
             byte length = Convert.ToByte(value?.Length ?? 0);
-            length.ToBytes(bytes, ref index);
+            length.ToBytes(bytes, ref index, $"{name}.{nameof(string.Length)}");
             if (length > 0)
             {
                 var text = Encoding.UTF8.GetBytes(value);
-                text.ToBytes(bytes, ref index);
+                text.ToBytes(bytes, ref index, name: name);
             }
         }
 
-        public static Byte AsByteable(this byte value) => new Byte(value);
-        public static Ushort AsByteable(this ushort value) => new Ushort(value);
-        public static Uint AsByteable(this uint value) => new Uint(value);
+        public static void ToBytes(this byte[] source, byte[] target, ref int targetIndex, int sourceIndex = 0, int? count = null, string name = null)
+        {
+            Validate(source, nameof(source), sourceIndex, nameof(sourceIndex), ref count);
+            if (count == 0)
+                return;
+            target.ValidateEnoughBytes(count.Value, name ?? nameof(source), targetIndex);
+            foreach (var sourceByte in source)
+                target[targetIndex++] = sourceByte;
+        }
 
         #endregion
 
@@ -397,7 +342,10 @@
 
         #endregion
 
+        #region Segment
+
         public static IReadOnlyList<byte> Segment(this IReadOnlyList<byte> bytes, int index = 0, int? count = null) => bytes.Segment(ref index, count);
+
         public static IReadOnlyList<byte> Segment(this IReadOnlyList<byte> bytes, ref int index, int? count = null)
         {
             if (index == 0 &&
@@ -416,6 +364,10 @@
                 new ArraySegment<byte>(array, index, count.Value) :
                 new ListSegment<byte>(bytes, index, count.Value);
         }
+
+        #endregion
+
+        #region Validate
 
         /// <summary>
         /// Validates whether <paramref name="bytes"/> has at least <paramref name="length"/> bytes starting at <paramref name="index"/> for <paramref name="purpose"/>
@@ -455,5 +407,7 @@
             if (index >= list.Count)
                 throw new ArgumentOutOfRangeException(name, index, $"Index {index} must be < " + list.Count);
         }
+
+        #endregion
     }
 }
