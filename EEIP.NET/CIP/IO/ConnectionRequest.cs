@@ -7,7 +7,6 @@
     /// <summary>
     /// Forward open/close request
     /// </summary>
-    /// </summary>
     public abstract record ConnectionRequest :
         MessageRouterRequest
     {
