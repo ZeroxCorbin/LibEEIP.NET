@@ -30,6 +30,47 @@
         }
 
         /// <summary>
+        /// Tries to apply shortcut rules according to
+        /// CIP C-1.6 Encoded Path Shortcut Rules.
+        /// </summary>
+        public EPath Compactify()
+        {
+            var logicalSegments = Segments.OfType<LogicalSegment>();
+            if (logicalSegments.Count() < 3)
+                return this;
+            uint? previousClassId = null;
+            uint? previousInstanceId = null;
+            var segments = Segments.Where(segment =>
+            {
+                if (segment is not LogicalSegment logicalSegment)
+                {
+                    previousClassId = previousInstanceId = null;
+                    return true;
+                }
+                if (logicalSegment.LogicalType == LogicalType.ClassId)
+                {
+                    if (previousClassId != logicalSegment.Value)
+                    {
+                        previousClassId = logicalSegment.Value;
+                        return true;
+                    }
+                }
+                else if (logicalSegment.LogicalType == LogicalType.InstanceId)
+                {
+                    if (previousInstanceId != logicalSegment.Value)
+                    {
+                        previousInstanceId = logicalSegment.Value;
+                        return true;
+                    }
+                }
+                else
+                    return true;
+                return false;
+            });
+            return new(segments.ToArray());
+        }
+
+        /// <summary>
         /// Number of 16bit words of this path
         /// </summary>
         public byte Size => (byte)(ByteCount / 2);
@@ -150,16 +191,21 @@
 
         #region ConnectionPoint
 
-        public static EPath ToConnectionPoint(ushort classId, ushort connectionPoint, ushort memberId = 0) => new(
+        public static EPath ToConnectionPoint(uint classId, uint connectionPoint, uint memberId = 0) => new(
             new LogicalSegment(classId, false, LogicalType.ClassId),
             new LogicalSegment(connectionPoint, false, LogicalType.ConnectionPoint),
             new LogicalSegment(memberId, true, LogicalType.MemberId));
 
-        public static EPath ToConnectionPoint(ushort classId, ushort instanceId, ushort connectionPoint, ushort memberId = 0) => new(
+        public static EPath ToConnectionPoint(uint classId, uint instanceId, uint connectionPoint, ushort memberId = 0) => new(
             new LogicalSegment(classId, false, LogicalType.ClassId),
             new LogicalSegment(instanceId, false, LogicalType.InstanceId),
             new LogicalSegment(connectionPoint, false, LogicalType.ConnectionPoint),
             new LogicalSegment(memberId, true, LogicalType.MemberId));
+
+        /// <summary>
+        /// Connection point
+        /// </summary>
+        public uint? ConnectionPoint => GetSegmentValue(LogicalType.ConnectionPoint);
 
         #endregion
 
@@ -181,21 +227,21 @@
         /// <summary>
         /// Class identifier
         /// </summary>
-        public uint? ClassId => (ushort?)GetSegmentValue(LogicalType.ClassId);
+        public uint? ClassId => GetSegmentValue(LogicalType.ClassId);
         /// <summary>
         /// Instance identifier. 0 means class itself without reference to any instance.
         /// </summary>
-        public uint? InstanceId => (ushort?)GetSegmentValue(LogicalType.InstanceId);
+        public uint? InstanceId => GetSegmentValue(LogicalType.InstanceId);
         /// <summary>
         /// Class/Instance identifier. 0 means class/instance itself without reference to any attribute.
         /// </summary>
-        public uint? AttributeId => (ushort?)GetSegmentValue(LogicalType.AttributeId);
+        public uint? AttributeId => GetSegmentValue(LogicalType.AttributeId);
         /// <summary>
         /// Class/Instance attribute member identifier. 0 means class/instance attribute itself without reference to any member.
         /// </summary>
-        public uint? MemberId => (ushort?)GetSegmentValue(LogicalType.MemberId);
+        public uint? MemberId => GetSegmentValue(LogicalType.MemberId);
 
-        public EPath WithClassIdOnly() => EPath.ToObject(ClassId.Value);
+        public EPath WithClassIdOnly() => ToObject(ClassId.Value);
         public EPath WithInstanceId(uint id) => WithSegmentValue(LogicalType.InstanceId, id);
         public EPath WithAttributeId(uint id) => WithSegmentValue(LogicalType.AttributeId, id);
         public EPath WithMemberId(uint id) => WithSegmentValue(LogicalType.MemberId, id);

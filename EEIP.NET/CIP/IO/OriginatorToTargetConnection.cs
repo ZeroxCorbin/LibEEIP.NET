@@ -57,7 +57,9 @@ namespace Sres.Net.EEIP.CIP.IO
             DataPath is null ||
             ReferenceEquals(ConfigurationPath, DataPath) ?
                 ConfigurationPath :
-                EPath.Concat(ConfigurationPath, DataPath);
+                ConfigurationPath is null ?
+                    DataPath :
+                    EPath.Concat(ConfigurationPath, DataPath).Compactify();
 
         /// <summary>
         /// Raised before <see cref="IOConnection.Data"/> is sent to target

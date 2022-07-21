@@ -250,7 +250,7 @@ namespace Sres.Net.EEIP.CIP.IO
                 originator :
                 originator is null ?
                     target :
-                    EPath.Concat(originator, target);
+                    EPath.Concat(originator, target).Compactify();
 
         #endregion
 
