@@ -36,14 +36,15 @@ namespace Sres.Net.EEIP
         #region ListIdentity
 
         /// <summary>
-        /// Autodiscovers EtherNet/IP device on network and uses it to set <see cref="Address"/> and <see cref="Port"/>
+        /// Autodiscovers EtherNet/IP device on network (using <see cref="ListIdentity"/>) and uses it to set <see cref="Address"/> and <see cref="Port"/>
         /// </summary>
         /// <param name="filter">Optional identity filter. null means any device.</param>
+        /// <param name="time">Time to wait for receiving responses to broadcasted request. Value &lt;= 0 means <see cref="DefaultListIdentityWaitTime"/>.</param>
         /// <returns>First device identity satisfying <paramref name="filter"/></returns>
         /// <exception cref="Exception">No device found</exception>
-        public IdentityItem AutoDiscover(Func<IdentityItem, bool> filter = null)
+        public IdentityItem AutoDiscover(Func<IdentityItem, bool> filter = null, TimeSpan time = default)
         {
-            var identities = ListIdentity();
+            var identities = ListIdentity(time);
             var identity = filter is null ?
                 identities.FirstOrDefault() :
                 identities.FirstOrDefault(filter);
@@ -54,47 +55,36 @@ namespace Sres.Net.EEIP
             return identity;
         }
 
+        public static readonly TimeSpan DefaultListIdentityWaitTime = TimeSpan.FromSeconds(1);
+
         /// <summary>
-        /// List and identify potential targets. This command shall be sent as braodcast massage using UDP.
+        /// List and identify potential targets.
+        /// This command is sent as broadcast message using UDP.
         /// </summary>
+        /// <param name="time">Time to wait for receiving responses to broadcasted request. Value &lt;= 0 means <see cref="DefaultListIdentityWaitTime"/>.</param>
         /// <returns>The received informations from all devices</returns>	
-        public IReadOnlyList<IdentityItem> ListIdentity()
+        public IReadOnlyList<IdentityItem> ListIdentity(TimeSpan time = default)
         {
-            foreach (NetworkInterface ni in NetworkInterface.GetAllNetworkInterfaces())
+            if (time <= TimeSpan.Zero)
+                time = DefaultListIdentityWaitTime;
+            var listIdentity = new Encapsulation.Encapsulation(Command.ListIdentity).ToBytes();
+            const ushort port = DefaultPort;
+            var receiveEndPoint = new IPEndPoint(IPAddress.Any, port);
+            using var udpClient = new UdpClient(receiveEndPoint);
+            var state = new UdpState
             {
-                if (!(
-                    ni.NetworkInterfaceType == NetworkInterfaceType.Wireless80211 ||
-                    ni.NetworkInterfaceType == NetworkInterfaceType.Ethernet))
-                {
-                    continue;
-                }
-                foreach (UnicastIPAddressInformation ip in ni.GetIPProperties().UnicastAddresses)
-                {
-                    if (ip.Address.AddressFamily != AddressFamily.InterNetwork)
-                        continue;
-
-                    IPAddress mask = ip.IPv4Mask;
-                    IPAddress address = ip.Address;
-
-                    string multicastAddress = (address.GetAddressBytes()[0] | (~(mask.GetAddressBytes()[0])) & 0xFF).ToString() + "." + (address.GetAddressBytes()[1] | (~(mask.GetAddressBytes()[1])) & 0xFF).ToString() + "." + (address.GetAddressBytes()[2] | (~(mask.GetAddressBytes()[2])) & 0xFF).ToString() + "." + (address.GetAddressBytes()[3] | (~(mask.GetAddressBytes()[3])) & 0xFF).ToString();
-
-                    var sendData = new Encapsulation.Encapsulation(Command.ListIdentity).ToBytes();
-                    var udpClient = new UdpClient();
-                    var endPoint = new IPEndPoint(IPAddress.Parse(multicastAddress), 44818);
-                    udpClient.Send(sendData, sendData.Length, endPoint);
-
-                    var state = new UdpState
-                    {
-                        EndPoint = endPoint,
-                        Client = udpClient
-                    };
-
-                    udpClient.BeginReceive(new AsyncCallback(ReceiveIdentity), state);
-
-                    System.Threading.Thread.Sleep(1000);
-                }
+                Client = udpClient,
+                EndPoint = receiveEndPoint
+            };
+            udpClient.BeginReceive(new AsyncCallback(ReceiveIdentity), state);
+            var sendEndPoint = new IPEndPoint(IPAddress.Broadcast, port);
+            udpClient.Send(listIdentity, listIdentity.Length, sendEndPoint);
+            System.Threading.Thread.Sleep(time);
+            lock (identityList)
+            {
+                state.Client = null;
+                return identityList;
             }
-            return identityList;
         }
 
         private void ReceiveIdentity(IAsyncResult ar)
@@ -102,6 +92,8 @@ namespace Sres.Net.EEIP
             lock (identityList)
             {
                 var state = (UdpState)ar.AsyncState;
+                if (state.Client is null)
+                    return;
                 var endPoint = state.EndPoint;
                 byte[] bytes = state.Client.EndReceive(ar, ref endPoint);
                 // EndReceive worked and we have received data and remote endpoint
@@ -165,8 +157,9 @@ namespace Sres.Net.EEIP
                 tcpPort = Port;
             else
                 Port = tcpPort.Value;
+            tcpClient = new TcpClient();
             var endPoint = new IPEndPoint(ipAddress, tcpPort.Value);
-            tcpClient = new TcpClient(endPoint);
+            tcpClient.Connect(endPoint);
             tcpStream = tcpClient.GetStream();
 
             var reply = Call(RegisterSessionRequest.Instance);
@@ -281,15 +274,14 @@ namespace Sres.Net.EEIP
         }
 
         /// <summary>
-        /// Detects response data length with <see cref="GetAttributeSingle"/>
+        /// Detects response data length with <see cref="GetAttributeSingle"/> if <paramref name="path"/> is non-null, otherwise returns 0
         /// </summary>
         /// <param name="path">Data path</param>
-        /// <exception cref="ArgumentNullException"><paramref name="path"/> is null</exception>
         public ushort GetDataSize(EPath path)
         {
-            if (path is null)
-                throw new ArgumentNullException(nameof(path));
-            var result = (ushort)this.GetAttributeSingle(path).Count;
+            var result = path is null ?
+                ushort.MinValue :
+                (ushort)this.GetAttributeSingle(path).Count;
             return result;
         }
 

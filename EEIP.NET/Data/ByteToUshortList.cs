@@ -7,12 +7,20 @@
     public class ByteToUshortList :
         IReadOnlyList<ushort>
     {
-        public ByteToUshortList(IReadOnlyList<byte> list)
+        protected ByteToUshortList(IReadOnlyList<byte> list)
         {
             List = list ?? throw new ArgumentNullException(nameof(list));
             if (list.Count % 2 > 0)
                 throw new ArgumentOutOfRangeException(nameof(list.Count), list.Count, "List count must be even");
         }
+
+        public static ByteToUshortList From(IReadOnlyList<byte> list = null) =>
+            list is null ||
+            list.Count == 0 ?
+                Empty :
+                new(list);
+
+        public static readonly ByteToUshortList Empty = new(Bytes.EmptyArray);
 
         public IReadOnlyList<byte> List { get; }
         public int Count => List.Count / 2;

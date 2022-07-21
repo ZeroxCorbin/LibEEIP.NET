@@ -18,8 +18,8 @@ namespace Sres.Net.EEIP.Encapsulation
 
         public SocketAddress(IReadOnlyList<byte> bytes, ref int index)
         {
-            index += 2; // skip family
             bytes.ValidateEnoughBytes(ByteCount, nameof(SocketAddress), index);
+            index += 2; // skip family
             var port = bytes.ToUshort(ref index, false);
             var address = bytes.ToUint(ref index, false);
             EndPoint = new(

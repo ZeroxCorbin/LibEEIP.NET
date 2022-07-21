@@ -10,6 +10,7 @@
         {
             this.Command = command;
             this.Data = data ?? Bytes.Empty;
+            senderContext = new Bytes(SenderContext);
         }
 
         public Encapsulation(IReadOnlyList<byte> bytes, int index = 0) :
@@ -17,7 +18,7 @@
         {
             Command = (Command)bytes.ToUshort(ref index);
             var dataLength = bytes.ToUshort(ref index);
-            bytes.ValidateEnoughBytes(MinByteCount + dataLength, nameof(Encapsulation) + " data");
+            bytes.ValidateEnoughBytes(MinByteCount - 4 + dataLength, nameof(Encapsulation) + " data");
             SessionHandle = bytes.ToUint(ref index);
             Status = (EncapsulationStatus)bytes.ToUint(ref index);
             bytes.ToBytes(ref index, SenderContext, count: SenderContext.Length);

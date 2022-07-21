@@ -14,7 +14,7 @@
         { }
 
         public IReadOnlyList<byte> Data { get; }
-        public override ushort ByteCount => (ushort)(Data?.Count);
+        public override ushort ByteCount => (ushort)(Data?.Count ?? 0);
 
         public static readonly Bytes Empty = new Bytes();
         public static readonly byte[] EmptyArray = Array.Empty<byte>();

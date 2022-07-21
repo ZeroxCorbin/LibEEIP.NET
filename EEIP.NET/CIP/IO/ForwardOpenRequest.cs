@@ -84,7 +84,7 @@ namespace Sres.Net.EEIP.CIP.IO
                 timeout,
                 originatorToTargetConnection.Id.AsByteable(),
                 targetToOriginatorConnection.Id.AsByteable(),
-                originator.SerialNumber.AsByteable(),
+                originatorToTargetConnection.SerialNumber.AsByteable(),
                 originator.VendorId.AsByteable(),
                 originator.SerialNumber.AsByteable(),
                 ((byte)connectionTimeoutMultiplier).AsByteable(),
@@ -248,7 +248,9 @@ namespace Sres.Net.EEIP.CIP.IO
             target is null ||
             ReferenceEquals(originator, target) ?
                 originator :
-                EPath.Concat(originator, target);
+                originator is null ?
+                    target :
+                    EPath.Concat(originator, target);
 
         #endregion
 

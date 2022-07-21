@@ -13,7 +13,8 @@
         public const uint ClassId = 6;
 
         /// <summary>
-        /// Returns the Explanation of a given statuscode (Table 3-5-29) Page 3-75 Vol 1
+        /// Returns the Explanation of a given statuscode.
+        /// CIP Table 3-5.29 Connection Manager Service Request Error Codes.
         /// </summary>
         /// <param name="status">Extended Status Code</param> 
         public static string GetExtendedStatus(ushort status)
@@ -34,9 +35,23 @@
                 0x0116 => "Revision mismatch",
                 0x0117 => "Invalid produced or consumed application path",
                 0x0118 => "Invalid or inconsistent configuration application path",
-                0x0119 => "non-listen only connection not opened",
+                0x0119 => "Non-listen only connection not opened",
                 0x011A => "Target Object out of connections",
                 0x011B => "RPI is smaller than the production inhibit time",
+
+                #region Not in CIP specification, but in CLICK EtherNet/IP Error Codes at https://www.automationdirect.com/microsites/clickplcs/click-help/Content/241.htm
+
+                0x0123 => "Invalid Originator to Target Network Connection Type",
+                0x0124 => "Invalid Target to Originator Network Connection Type",
+                0x0127 => "Invalid Originator to Target Size",
+                0x0128 => "Invalid Target to Originator Size",
+                0x012A => "Invalid Consuming Application Path",
+                0x012B => "Invalid Producing Application Path",
+                0x012F => "Inconsistent Application Path Combination",
+                0x0132 => "Null Forward Open function not supported",
+
+                #endregion
+
                 0x0203 => "Connection timed out",
                 0x0204 => "Unconnected request timed out",
                 0x0205 => "Parameter Error in unconnected request service",

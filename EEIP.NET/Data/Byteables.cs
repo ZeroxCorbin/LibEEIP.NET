@@ -170,8 +170,8 @@
                     Array.Copy(array, sourceIndex, target, targetIndex, count.Value);
                 else
                 {
-                    for (int i = sourceIndex; i < sourceIndex + count; i++)
-                        target[targetIndex + i] = source[i];
+                    for (int i = 0; i < count; i++)
+                        target[targetIndex + i] = source[sourceIndex + i];
                 }
                 sourceIndex += count.Value;
             }
@@ -322,12 +322,14 @@
 
         public static ByteToUshortList ToUshortListWithByteCount(this IReadOnlyList<byte> bytes, ref int index, string name = null)
         {
+            name ??= nameof(ByteToUshortList);
             var count = bytes.ToByte(ref index, $"{name}.{nameof(ByteToUshortList.Count)}");
             return bytes.ToUshortList(ref index, count, name);
         }
 
         public static ByteToUshortList ToUshortListWithUshortCount(this IReadOnlyList<byte> bytes, ref int index, string name = null)
         {
+            name ??= nameof(ByteToUshortList);
             var count = bytes.ToUshort(ref index, name: $"{name}.{nameof(ByteToUshortList.Count)}");
             return bytes.ToUshortList(ref index, count, name);
         }
@@ -337,7 +339,7 @@
             int byteCount = itemCount * 2;
             ValidateEnoughBytes(bytes, byteCount, name ?? nameof(ByteToUshortList), index);
             var data = bytes.Segment(ref index, byteCount);
-            return new(data);
+            return ByteToUshortList.From(data);
         }
 
         #endregion
@@ -359,10 +361,11 @@
             bytes.Validate(nameof(bytes), index, nameof(index), ref count);
             if (count.Value == 0)
                 return Bytes.EmptyArray;
-            index += count.Value;
-            return bytes is byte[] array ?
+            IReadOnlyList<byte> result = bytes is byte[] array ?
                 new ArraySegment<byte>(array, index, count.Value) :
                 new ListSegment<byte>(bytes, index, count.Value);
+            index += count.Value;
+            return result;
         }
 
         #endregion
@@ -393,11 +396,12 @@
         {
             if (list is null)
                 throw new ArgumentNullException(listName);
-            ValidateIndex(list, startIndex, startIndexName);
-            if (count.HasValue)
-                ValidateIndex(list, startIndex + count.Value, $"{startIndexName} + {nameof(count)}");
-            else
-                count = list.Count - startIndex;
+            var hadCount = count.HasValue;
+            count ??= list.Count - startIndex;
+            if (count > 0)
+                ValidateIndex(list, startIndex, startIndexName);
+            if (hadCount)
+                ValidateIndex(list, startIndex + count.Value - 1, $"{startIndexName} + {nameof(count)}");
         }
 
         private static void ValidateIndex<T>(IReadOnlyList<T> list, int index, string name)

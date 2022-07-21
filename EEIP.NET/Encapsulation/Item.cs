@@ -17,7 +17,7 @@
         {
             var type = bytes.ToUshort(ref index);
             var dataLength = bytes.ToUshort(ref index);
-            bytes.ValidateEnoughBytes(MinByteCount + dataLength, nameof(Item) + " data", index);
+            bytes.ValidateEnoughBytes(MinByteCount - 4 + dataLength, nameof(Item) + " data", index);
             var data = dataLength == 0 ?
                 null :
                 bytes.Segment(ref index, dataLength);

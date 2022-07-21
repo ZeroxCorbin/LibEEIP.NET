@@ -129,7 +129,7 @@
                 (ushort)6 :
                 (ushort)2;
 
-        public IByteable GetNetworkParameters(bool large)
+        public IByteable GetNetworkParameters(bool large) => new LazyByteable(() =>
         {
             var ownerRedundant = (uint)(OwnerRedundant ? 1 : 0);
             var type = (uint)((byte)Type & 0x03);
@@ -142,7 +142,7 @@
             return large ?
                 result.AsByteable() :
                 ((ushort)result).AsByteable();
-        }
+        });
 
         #region Timeout
 

@@ -23,12 +23,14 @@ namespace Sres.Net.EEIP.CIP.IO
             ConnectionSizeType dataSizeType = DefaultDataSizeType) :
             base(ownerRedundant, type, realTimeFormat, requestedPacketRate, priority, dataSize, dataSizeType)
         {
-            DataPath = dataPath ?? configurationPath ?? DefaultDataPath;
+            DataPath = IsNull ?
+                null:
+                dataPath ?? configurationPath ?? DefaultDataPath;
             if (configurationPath?.HasData == false)
                 throw new ArgumentException("Configuration path must have data", nameof(configurationPath));
             ConfigurationPath = configurationPath;
-            if (IsNull && configurationPath is null)
-                throw new ArgumentNullException(nameof(configurationPath), "Configuration path must be specified when connection type is " + nameof(ConnectionType.Null));
+            //if (IsNull && configurationPath is null)
+            //    throw new ArgumentNullException(nameof(configurationPath), "Configuration path must be specified when connection type is " + nameof(ConnectionType.Null));
         }
 
         public ushort SerialNumber { get; init; } = (ushort)Random.Next(ushort.MaxValue);

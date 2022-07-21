@@ -6,9 +6,9 @@
     using Sres.Net.EEIP.Data;
 
     /// <summary>
-    /// Padded encrypted request logical path (EPATH)
+    /// Padded path (EPATH)
     /// </summary>
-    /// <remarks>CIP specification: C-1.4.2</remarks>
+    /// <remarks>CIP C-1 Abstract Syntax Encoding Coding for Segment Types</remarks>
     public partial record EPath :
         Byteable
     {
