@@ -145,7 +145,7 @@
             }
         }
 
-        public static void ToBytes(this byte[] source, byte[] target, ref int targetIndex, int sourceIndex = 0, int? count = null, string name = null)
+        public static void ToBytes(this IReadOnlyList<byte> source, byte[] target, ref int targetIndex, int sourceIndex = 0, int? count = null, string name = null)
         {
             Validate(source, nameof(source), sourceIndex, nameof(sourceIndex), ref count);
             if (count == 0)

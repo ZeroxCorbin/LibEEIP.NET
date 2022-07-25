@@ -166,6 +166,13 @@ namespace Sres.Net.EEIP
             return SessionHandle = reply.SessionHandle;
         }
 
+        protected void EnsureSession()
+        {
+            // If a session is not registered, try to register a session with the predefined IP-Address and Port
+            if (SessionHandle == 0)
+                this.RegisterSession();
+        }
+
         /// <summary>
         /// Sends <see cref="Command.UnRegisterSession"/> to a target to terminate TCP/IP session
         /// </summary> 
@@ -183,8 +190,13 @@ namespace Sres.Net.EEIP
             {
                 //Handle Exception to allow to Close the Stream if the connection was closed by Remote Device
             }
-            tcpClient.Dispose();
-            tcpStream.Dispose();
+            DisposeSession();
+        }
+
+        public void DisposeSession()
+        {
+            tcpClient?.Dispose();
+            tcpStream?.Dispose();
             SessionHandle = 0;
         }
 
@@ -192,13 +204,32 @@ namespace Sres.Net.EEIP
         {
             if (request is null)
                 throw new ArgumentNullException(nameof(request));
+            if (tcpClient is null)
+                throw new InvalidOperationException($"{nameof(RegisterSession)} must be called first");
             request.SessionHandle = SessionHandle;
 
             byte[] requestBytes = request.ToBytes();
-            tcpStream.Write(requestBytes, 0, requestBytes.Length);
+            byte[] replyBuffer;
+            int replyLength;
+            lock (tcpStream)
+            {
+                try
+                {
+                    tcpStream.Write(requestBytes, 0, requestBytes.Length);
 
-            var replyBuffer = new byte[564];
-            int replyLength = tcpStream.Read(replyBuffer, 0, replyBuffer.Length);
+                    replyBuffer = new byte[564];
+                    replyLength = tcpStream.Read(replyBuffer, 0, replyBuffer.Length);
+                }
+                catch (SocketException)
+                    when (
+                        request != RegisterSessionRequest.Instance &&
+                        !tcpClient.Connected)
+                {
+                    DisposeSession();
+                    RegisterSession();
+                    return Call(request);
+                }
+            }
             var replyBytes = replyBuffer.Segment(count: replyLength);
             var reply = new Encapsulation.Encapsulation(replyBytes);
             if (reply.Status != EncapsulationStatus.Success)
@@ -211,9 +242,7 @@ namespace Sres.Net.EEIP
 
         public UnconnectedMessageManagerReply Call(MessageRouterRequest request, params Item[] items)
         {
-            // If a session is not registered, try to register a session with the predefined IP-Address and Port
-            if (SessionHandle == 0)
-                this.RegisterSession();
+            EnsureSession();
             var reply = Call(new UnconnectedMessageManagerRequest(request, items));
             var replyPacket = new UnconnectedMessageManagerReply(reply);
             var error = GeneralException.From(replyPacket.Value);
