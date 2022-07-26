@@ -276,7 +276,7 @@
         /// </summary>
         /// <param name="bytes">Bytes to convert</param> 
         public static short ToShort(this IReadOnlyList<byte> bytes, ref int index, bool littleEndian = true, string name = null)
-            => bytes.To(ref index, 4, BitConverter.ToInt16, littleEndian, name);
+            => bytes.To(ref index, 2, BitConverter.ToInt16, littleEndian, name);
 
         public static short ToShort(this IReadOnlyList<byte> bytes, int index = 0, bool littleEndian = true, string name = null)
             => bytes.ToShort(ref index, littleEndian, name);
@@ -398,8 +398,9 @@
                 throw new ArgumentNullException(listName);
             var hadCount = count.HasValue;
             count ??= list.Count - startIndex;
-            if (count > 0)
-                ValidateIndex(list, startIndex, startIndexName);
+            if (count == 0)
+                return;
+            ValidateIndex(list, startIndex, startIndexName);
             if (hadCount)
                 ValidateIndex(list, startIndex + count.Value - 1, $"{startIndexName} + {nameof(count)}");
         }

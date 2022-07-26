@@ -216,14 +216,12 @@ namespace Sres.Net.EEIP
                 try
                 {
                     tcpStream.Write(requestBytes, 0, requestBytes.Length);
-
                     replyBuffer = new byte[564];
                     replyLength = tcpStream.Read(replyBuffer, 0, replyBuffer.Length);
                 }
-                catch (SocketException)
-                    when (
-                        request != RegisterSessionRequest.Instance &&
-                        !tcpClient.Connected)
+                catch when (
+                    request != RegisterSessionRequest.Instance &&
+                    !tcpClient.Connected)
                 {
                     DisposeSession();
                     RegisterSession();
