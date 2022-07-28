@@ -177,7 +177,10 @@
             }
             return target;
         }
-        
+
+        public static byte[] ToBytes(this IReadOnlyList<byte> source, int sourceIndex = 0, byte[] target = null, int targetIndex = 0, int? count = null)
+            => source.ToBytes(ref sourceIndex, target, targetIndex, count);
+
         public static string ToString(this IReadOnlyList<byte> bytes, ref int index, string name = null)
         {
             byte length = bytes.ToByte(ref index, $"{name ?? nameof(String)}.{nameof(string.Length)}");
@@ -191,6 +194,8 @@
                 result = null;
             return result;
         }
+
+        public static string ToString(this IReadOnlyList<byte> bytes, int index = 0, string name = null) => bytes.ToString(ref index, name);
 
         /// <summary>
         /// Converts 1 byte from <paramref name="bytes"/> (received e.g. via <see cref="EIPClient.GetAttributeSingle"/>) to byte
@@ -207,6 +212,8 @@
             return result;
         }
 
+        public static byte ToByte(this IReadOnlyList<byte> bytes, int index = 0, string name = null) => bytes.ToByte(ref index, name);
+
         /// <summary>
         /// Converts 1 byte from <paramref name="bytes"/> (received e.g. via <see cref="EIPClient.GetAttributeSingle"/>) to sbyte
         /// </summary>
@@ -221,6 +228,8 @@
             var result = (sbyte)bytes[index++];
             return result;
         }
+
+        public static sbyte ToSbyte(this IReadOnlyList<byte> bytes, int index = 0, string name = null) => bytes.ToSbyte(ref index, name);
 
         /// <summary>
         /// Converts <paramref name="count"/> <paramref name="bytes"/> (received e.g. via <see cref="EIPClient.GetAttributeSingle"/>) to <typeparamref name="T"/>
@@ -271,6 +280,9 @@
             return result;
         }
 
+        public static ushort ToUshort(this IReadOnlyList<byte> bytes, int index = 0, bool littleEndian = true, string name = null)
+            => bytes.ToUshort(ref index, littleEndian, name);
+
         /// <summary>
         /// Converts 2 <paramref name="bytes"/> (received e.g. via <see cref="EIPClient.GetAttributeSingle"/>) to short
         /// </summary>
@@ -317,7 +329,7 @@
         /// <param name="byte">Byte to convert</param>
         /// <param name="bitPosition">Bit position to convert (First bit = bitposition 0)</param> 
         /// <returns>Converted bool value</returns>
-        public static bool ToBool(this byte @byte, int bitPosition)
+        public static bool ToBool(this byte @byte, int bitPosition = 0)
             => ((@byte >> bitPosition) & 0x01) != 0;
 
         public static ByteToUshortList ToUshortListWithByteCount(this IReadOnlyList<byte> bytes, ref int index, string name = null)
