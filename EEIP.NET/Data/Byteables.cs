@@ -246,7 +246,7 @@
         public static T To<T>(this IReadOnlyList<byte> bytes, ref int index, byte count, Func<byte[], int, T> convert, bool littleEndian = true, string name = null)
             where T : struct
         {
-            bytes.ValidateEnoughBytes(count, name ?? nameof(T), index);
+            bytes.ValidateEnoughBytes(count, name ?? typeof(T).Name, index);
             if (convert is null)
                 throw new ArgumentNullException(nameof(convert));
             var array = new byte[count];
