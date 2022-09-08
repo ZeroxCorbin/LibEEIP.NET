@@ -1,0 +1,5 @@
+<Project>
+	<PropertyGroup>
+		<!--This file prevents loading Directory.Build.props from parent folders-->
+	</PropertyGroup>
+</Project>
