@@ -49,13 +49,13 @@ namespace Sres.Net.EEIP
                 identities.FirstOrDefault() :
                 identities.FirstOrDefault(filter);
             if (identity is null)
-                throw new Exception("No suitable EtherNet/IP device found on network");
-            Address = identity.SocketAddress.Address;
+                return identity;//throw new Exception("No suitable EtherNet/IP device found on network");
+            Address = identity.SocketAddress.IPAddress;
             Port = identity.SocketAddress.Port;
             return identity;
         }
 
-        public static readonly TimeSpan DefaultListIdentityWaitTime = TimeSpan.FromSeconds(1);
+        public static readonly TimeSpan DefaultListIdentityWaitTime = TimeSpan.FromSeconds(3);
 
         /// <summary>
         /// List and identify potential targets.
@@ -69,7 +69,7 @@ namespace Sres.Net.EEIP
                 time = DefaultListIdentityWaitTime;
             var listIdentity = new Encapsulation.Encapsulation(Command.ListIdentity).ToBytes();
             const ushort port = DefaultPort;
-            var receiveEndPoint = new IPEndPoint(IPAddress.Any, port);
+            var receiveEndPoint = new IPEndPoint(IPAddress.Parse("192.168.100.1"), port);
             using var udpClient = new UdpClient(receiveEndPoint);
             var state = new UdpState
             {
@@ -102,7 +102,11 @@ namespace Sres.Net.EEIP
                     var response = new Encapsulation.Encapsulation(bytes);
                     if (response.Command == Command.ListIdentity)
                     {
-                        var identity = response.GetCommonPacket().IdentityItem;
+                        int index = 8;
+                        var soc = new Encapsulation.SocketAddress(response.Data.ToBytes(), ref index);
+                        index = 24;
+                        var identity = new IdentityItem( new IdentityInstance(response.Data.ToBytes(), ref index), soc);
+
                         if (identity != null)
                             identityList.Add(identity);
                     }

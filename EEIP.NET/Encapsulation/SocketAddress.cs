@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Net;
+using Newtonsoft.Json;
 using Sres.Net.EEIP.Data;
 
 namespace Sres.Net.EEIP.Encapsulation
@@ -11,10 +12,10 @@ namespace Sres.Net.EEIP.Encapsulation
     public record SocketAddress :
         Byteable
     {
-        public SocketAddress(uint address, ushort port)
-            => EndPoint = new(
-                GetAddress(address),
-                port);
+        [JsonConstructor]
+        public SocketAddress() => EndPoint = new IPEndPoint(IPAddress.Any, 0);
+
+        public SocketAddress(uint address, ushort port) => EndPoint = new(GetAddress(address), port);
 
         public SocketAddress(IReadOnlyList<byte> bytes, ref int index)
         {
@@ -27,9 +28,14 @@ namespace Sres.Net.EEIP.Encapsulation
                 port);
         }
 
+        [JsonIgnore]
         public IPEndPoint EndPoint { get; }
-        public IPAddress Address => EndPoint.Address;
-        public ushort Port => (ushort)EndPoint.Port;
+        [JsonIgnore]
+        public IPAddress IPAddress => EndPoint.Address;
+        public string Address { get => EndPoint.Address.ToString(); set => EndPoint.Address = IPAddress.Parse(value); }
+
+        public ushort Port { get=> (ushort)EndPoint.Port; set => EndPoint.Port = value; }
+
         public ushort Family => (ushort)EndPoint.AddressFamily;
 
         public static IPAddress GetAddress(uint address) => new IPAddress(address);
@@ -51,7 +57,7 @@ namespace Sres.Net.EEIP.Encapsulation
             // sin_port
             Port.ToBytes(bytes, ref index, false);
             // sin_addr
-            var address = Address.GetAddressBytes();
+            var address = IPAddress.GetAddressBytes();
             bytes[index++] = address[3];
             bytes[index++] = address[2];
             bytes[index++] = address[1];

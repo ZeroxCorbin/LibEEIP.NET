@@ -56,7 +56,7 @@ namespace Sres.Net.EEIP.Encapsulation
         public DataItem Data => (DataItem)Items.Skip(1).First();
         public IEnumerable<Item> OptionalItems => Items.Skip(2);
 
-        public IdentityItem IdentityItem => OptionalItems.
+        public IdentityItem IdentityItem => Items.
             OfType<IdentityItem>().
             SingleOrDefault();
 

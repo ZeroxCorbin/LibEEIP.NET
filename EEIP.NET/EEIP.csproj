@@ -41,4 +41,7 @@ Can also be used for LabView integration (see LabView example in source code).</
 	<ItemGroup>
 		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
 	</ItemGroup>
+	<ItemGroup>
+	  <ProjectReference Include="..\..\_Others\Newtonsoft.Json\Src\Newtonsoft.Json\Newtonsoft.Json.csproj" />
+	</ItemGroup>
 </Project>

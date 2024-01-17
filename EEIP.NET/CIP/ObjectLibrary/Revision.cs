@@ -1,11 +1,15 @@
 ﻿namespace Sres.Net.EEIP.CIP.ObjectLibrary
 {
     using System.Collections.Generic;
+    using Newtonsoft.Json;
     using Sres.Net.EEIP.Data;
 
     public record Revision :
         Byteable
     {
+        [JsonConstructor]
+        public Revision() { }
+
         public Revision(byte major, byte minor)
         {
             this.Major = major;
@@ -19,8 +23,8 @@
             Minor = bytes[index++];
         }
 
-        public byte Major { get; init; }
-        public byte Minor { get; init; }
+        public byte Major { get; set; }
+        public byte Minor { get; set; }
 
         public const int ByteCountStatic = 2;
         public override ushort ByteCount => ByteCountStatic;
