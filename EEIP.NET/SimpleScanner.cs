@@ -27,10 +27,10 @@ namespace Sres.Net.EEIP
         /// </summary>
         public const ushort DefaultPort = 44818;
 
-        public static readonly TimeSpan DefaultListIdentityWaitTime = TimeSpan.FromSeconds(3);
+        public const int DefaultListIdentityWaitTime = 3000;
 
-        public IEnumerable<IdentityItem> ListIdentities(string bindIpAddress, Func<IdentityItem, bool> where, int bindPort = DefaultPort, TimeSpan time = default ) =>
-            where is null ? ListIdentities(bindIpAddress, bindPort, time) : ListIdentities(bindIpAddress, bindPort, time).Where(where);
+        public IEnumerable<IdentityItem> ListIdentities(string bindIpAddress, Func<IdentityItem, bool> where, int bindPort = DefaultPort, int waitTime = DefaultListIdentityWaitTime) =>
+            where is null ? ListIdentities(bindIpAddress, bindPort, waitTime) : ListIdentities(bindIpAddress, bindPort, waitTime).Where(where);
 
         /// <summary>
         /// List and identify potential targets.
@@ -38,14 +38,12 @@ namespace Sres.Net.EEIP
         /// </summary>
         /// <param name="time">Time to wait for receiving responses to broadcasted request. Value &lt;= 0 means <see cref="DefaultListIdentityWaitTime"/>.</param>
         /// <returns>The received informations from all devices</returns>	
-        public IEnumerable<IdentityItem> ListIdentities(string bindIpAddress, int bindPort = DefaultPort, TimeSpan time = default)
+        public IEnumerable<IdentityItem> ListIdentities(string bindIpAddress, int bindPort = DefaultPort, int waitTime = DefaultListIdentityWaitTime)
         {
             BindPort = (ushort)bindPort;
             Address = IPAddress.Parse(bindIpAddress);
             identityList.Clear();
 
-            if (time <= TimeSpan.Zero)
-                time = DefaultListIdentityWaitTime;
             var listIdentity = new Encapsulation.Encapsulation(Command.ListIdentity).ToBytes();
             var receiveEndPoint = new IPEndPoint(Address, BindPort);
             using var udpClient = new UdpClient(receiveEndPoint);
@@ -57,7 +55,7 @@ namespace Sres.Net.EEIP
             udpClient.BeginReceive(new AsyncCallback(ReceiveIdentity), state);
             var sendEndPoint = new IPEndPoint(IPAddress.Broadcast, BindPort);
             udpClient.Send(listIdentity, listIdentity.Length, sendEndPoint);
-            System.Threading.Thread.Sleep(time);
+            System.Threading.Thread.Sleep(waitTime);
             lock (identityList)
             {
                 state.Client = null;
